@@ -18,11 +18,12 @@
  */
 
 #include <Arduino.h>
-#include "module_son.h"
-#include "module_num_serie.h"
-#include "module_affichage.h"
-#include "setup_module.h"
-#include "version.h"
+#include "son.h"
+#include "serie.h"
+#include "affichage.h"
+#include "setup.h"
+#include "config.h"
+#include <utils.h>
 #include <I2C_eeprom.h>
 #include <Wire.h>             // Bibliothèque nécessaire pour I2C
 #include <Adafruit_GFX.h>     // Core graphics library
@@ -266,13 +267,6 @@ String getMacString(const uint8_t *mac);
 void debugPrint(const String &msg);
 
 // *******************1111111***************************
-String getMacString(const uint8_t *mac) {
-  char macStr[18];
-  snprintf(macStr, sizeof(macStr),
-           "%02X:%02X:%02X:%02X:%02X:%02X",
-           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  return String(macStr);
-}
 
 
 //void sequenceFinaleSetup(unsigned long currentMillis);

@@ -1,6 +1,6 @@
- #include "module_affichage.h"
+ #include "affichage.h"
 #include <WiFi.h>
-#include "version.h"
+#include "config.h"
  
 
 void afficherNum() {

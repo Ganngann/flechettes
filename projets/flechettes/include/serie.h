@@ -8,11 +8,11 @@
 #include <WiFi.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
-#include "version.h"
+#include "config.h"
+#include <utils.h>
 
 // Déclarations externes (à définir ailleurs)
 extern uint8_t broadcastAddress[]; // Adresse MAC du peer (ESP-NOW)
-String getMacString(const uint8_t *mac);
 void debugPrint(const String &msg);
 //jouerSon(1);
 void afficherNumSerie(Adafruit_ST7735 &tft) {
@@ -31,7 +31,7 @@ void afficherNumSerie(Adafruit_ST7735 &tft) {
   tft.println(mac);
 
   // Adresse MAC peer (ESP-NOW)
-  String macString = getMacString(broadcastAddress);
+  String macString = formatMacAddress(broadcastAddress);
   tft.setCursor(0, 45);
   tft.println("Peer:");
 

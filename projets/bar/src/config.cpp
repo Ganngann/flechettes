@@ -1,6 +1,6 @@
  
 
- #include "version.h"
+ #include "config.h"
  #include <Arduino.h>
  #include "config_cpu.h"
 
@@ -52,7 +52,7 @@ const int LdBlu1 = 12;
 #endif
 
 // Texte d’info
- #include "version.h"
+ #include "config.h"
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
 

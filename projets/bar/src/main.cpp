@@ -7,13 +7,14 @@
 
 
 #include <Arduino.h>
-#include "module_son.h"
-#include "module_num_serie.h"
-#include "module_affichage.h"
-#include "setup_module.h"
-#include "version.h"
-#include "variables_globales.h"
-#include "module_connexion.h"
+#include "son.h"
+#include "serie.h"
+#include "affichage.h"
+#include "setup.h"
+#include "config.h"
+#include "globales.h"
+#include "connexion.h"
+#include <utils.h>
 
 #include "config_cpu.h"
 
@@ -132,13 +133,6 @@ typedef struct struct_message {
   bool fs1;
 } struct_message;
 
-String getMacString(const unsigned char *mac) {
-  char macStr[18];
-  snprintf(macStr, sizeof(macStr),
-           "%02X:%02X:%02X:%02X:%02X:%02X",
-           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-  return String(macStr);
-}
 
 
 enum State {

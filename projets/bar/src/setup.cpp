@@ -1,7 +1,7 @@
- #include "setup_module.h"
-#include "module_affichage.h"
-#include "module_son.h"
-#include "variables_globales.h"
+ #include "setup.h"
+#include "affichage.h"
+#include "son.h"
+#include "globales.h"
 
 void initialiserModules() {
   tft.initR(INITR_BLACKTAB);

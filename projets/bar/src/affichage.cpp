@@ -1,8 +1,8 @@
-#include "module_affichage.h"
+#include "affichage.h"
 #include <WiFi.h>
-#include "version.h"
-#include "module_son.h"
-#include "variables_globales.h"
+#include "config.h"
+#include "son.h"
+#include "globales.h"
 
  
 
