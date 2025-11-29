@@ -1,9 +1,8 @@
- #include "affichage.h"
+#include "affichage.h"
 #include <WiFi.h>
 #include "config.h"
- 
 
-void afficherNum() {
+void afficherNum(Adafruit_ST7735 &tft) {
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextColor(ST77XX_WHITE);
   tft.setTextSize(2);
@@ -20,9 +19,7 @@ void afficherNum() {
   tft.fillRoundRect(69, 18, 20, 45, 5, ST77XX_YELLOW); 
 }
 
-
-
-void afficherSetup() {
+void afficherSetup(Adafruit_ST7735 &tft) {
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextColor(ST77XX_WHITE);
   tft.setTextSize(2);
@@ -34,7 +31,7 @@ void afficherSetup() {
   tft.fillRoundRect(69, 18, 20, 45, 5, ST77XX_RED);
 }
 
-void afficherStart() {
+void afficherStart(Adafruit_ST7735 &tft) {
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextColor(ST77XX_WHITE);
   tft.setTextSize(2);
@@ -48,7 +45,7 @@ void afficherStart() {
   tft.fillRoundRect(69, 18, 20, 45, 5, ST77XX_GREEN);
 }
 
-void afficherInit() {
+void afficherInit(Adafruit_ST7735 &tft) {
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextColor(ST77XX_WHITE);
   tft.setTextSize(2);
@@ -64,7 +61,7 @@ void afficherInit() {
   tft.println(version);
 }
 
-void afficherPublicite() {
+void afficherPublicite(Adafruit_ST7735 &tft) {
   tft.fillScreen(ST77XX_BLUE);
   tft.setTextColor(ST77XX_WHITE);
   tft.setCursor(0, 10);
@@ -74,4 +71,3 @@ void afficherPublicite() {
   }
   tft.setTextSize(2);
 }
-

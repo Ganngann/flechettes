@@ -1,16 +1,8 @@
 #include "affichage.h"
 #include <WiFi.h>
 #include "config.h"
-#include "son.h"
-#include "globales.h"
 
- 
-
- 
-
- 
- 
-void afficherNum() {
+void afficherNum(Adafruit_ST7735 &tft) {
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextColor(ST77XX_WHITE);
   tft.setTextSize(2);
@@ -26,7 +18,6 @@ void afficherNum() {
   tft.fillRoundRect(39, 18, 20, 45, 5, ST77XX_YELLOW);
   tft.fillRoundRect(69, 18, 20, 45, 5, ST77XX_YELLOW); 
 }
-
 
 void afficherStart(Adafruit_ST7735 &tft) { 
   unsigned long debut = millis();
