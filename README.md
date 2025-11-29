@@ -45,15 +45,18 @@ Ce module est installé dans ou près de la machine de fléchettes.
 
 ## Installation et Configuration
 
-### Prérequis Logiciels
-*   Arduino IDE
-*   Bibliothèques nécessaires (à installer via le gestionnaire de bibliothèques) :
-    *   `Adafruit GFX Library`
-    *   `Adafruit ST7735 and ST7789 Library`
-    *   `ezButton`
-    *   `I2C_eeprom`
-    *   `PCF8574`
-    *   `DS1307new` (ou équivalent pour RTC)
+### Environnement de Développement
+
+Ce projet utilise désormais **PlatformIO** pour garantir que toutes les dépendances (bibliothèques) sont installées automatiquement et dans les bonnes versions.
+
+Pour commencer :
+1.  Installez **Visual Studio Code**.
+2.  Installez l'extension **PlatformIO IDE**.
+3.  Ouvrez le dossier `bar/cmptr_bar` ou `jeux/Flechettes` dans VS Code.
+4.  PlatformIO installera automatiquement tout le nécessaire.
+5.  Utilisez les boutons de la barre d'état (bas de la fenêtre) pour compiler (Check) et téléverser (Arrow).
+
+Consultez `AGENTS.md` pour plus de détails sur la gestion des dépendances.
 
 ### Configuration des Adresses MAC
 Le protocole ESP-NOW nécessite de connaître l'adresse MAC du destinataire.
