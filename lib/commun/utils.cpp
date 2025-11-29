@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <stdio.h>
 
 String formatMacAddress(const uint8_t *mac) {
   char macStr[18];
