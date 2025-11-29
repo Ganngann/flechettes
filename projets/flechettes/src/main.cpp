@@ -1,7 +1,7 @@
 /* Flechette10.ino
  * voir version.cpp
  * Correction librairie Ardafruit expressif  et certaines librairies
- 
+
   C:\Users\user\Documents\Arduino
   c:\Users\user\Documents\Arduino\libraries\esp_now
  */
@@ -10,7 +10,7 @@
  * Flechette07.ino
  * Voir version.cpp pour le suivi des versions.
  * Correction des bibliothèques Adafruit, Espressif et autres dépendances.
- * 
+ *
  * Répertoire projet :
  *   C:\Users\user\Documents\Arduino
  * Bibliothèque ESP-NOW :
@@ -25,10 +25,10 @@
 #include "config.h"
 #include <utils.h>
 #include <I2C_eeprom.h>
-#include <Wire.h>             // Bibliothèque nécessaire pour I2C
-#include <Adafruit_GFX.h>     // Core graphics library
-#include <Adafruit_ST77xx.h>  // Hardware-specific library
-#include <Adafruit_ST7735.h>  // Hardware-specific library
+#include <Wire.h>            // Bibliothèque nécessaire pour I2C
+#include <Adafruit_GFX.h>    // Core graphics library
+#include <Adafruit_ST77xx.h> // Hardware-specific library
+#include <Adafruit_ST7735.h> // Hardware-specific library
 #include <ezButton.h>
 #include <SPI.h>
 #include <esp_now.h>
@@ -41,10 +41,10 @@
 #define DS1307_ID 0x68
 
 uint16_t result = 0;
- 
+
 #define PCF_ADDRESS 0x20
-//#define PCF_ADDRESS 0x20
-//#define PCF_ADDRESS 0x38 //pcf 8574 A
+// #define PCF_ADDRESS 0x20
+// #define PCF_ADDRESS 0x38 //pcf 8574 A
 
 PCF8574 pcf8574(PCF_ADDRESS);
 uint8_t pcf_address_definie = PCF_ADDRESS;
@@ -54,17 +54,18 @@ uint8_t led01 = 19;
 uint8_t Nvr1, Nvr2;
 
 #if ESP_IDF_VERSION_MAJOR >= 5
-  void OnDataSent(const wifi_tx_info_t *tx_info, esp_now_send_status_t status)
+void OnDataSent(const wifi_tx_info_t *tx_info, esp_now_send_status_t status)
 #else
-  void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 #endif
 
 {
   result = !result;
   pcf8574.write(0, result);
 
-  if (status != ESP_NOW_SEND_SUCCESS) {
-   // Serial.println("Delivery Fail");
+  if (status != ESP_NOW_SEND_SUCCESS)
+  {
+    // Serial.println("Delivery Fail");
   }
 
   pcf8574.write(1, status);
@@ -78,18 +79,22 @@ uint8_t Nvr1, Nvr2;
 // 🔹 Fonctions utilitaires I2C à placer avant setup()
 // =====================================================
 
-void resetI2C() {
+void resetI2C()
+{
   Wire.end();
   delay(50);
   Wire.begin(SDA, SCL);
   delay(50);
 }
 
-bool waitForRTC() {
-  for (int i = 0; i < 15; i++) {  // essaie pendant environ 3 secondes
+bool waitForRTC()
+{
+  for (int i = 0; i < 15; i++)
+  {                               // essaie pendant environ 3 secondes
     Wire.beginTransmission(0x68); // adresse du DS1307 / DS3231
     byte err = Wire.endTransmission();
-    if (err == 0) return true;    // RTC présent
+    if (err == 0)
+      return true; // RTC présent
     delay(200);
   }
   return false; // échec
@@ -98,7 +103,8 @@ bool waitForRTC() {
 // =====================================================
 // 🔹 Vérifie et initialise la NVRAM du RTC
 // =====================================================
-bool verifierPileRTC(Adafruit_ST7735 &tft) {
+bool verifierPileRTC(Adafruit_ST7735 &tft)
+{
   uint8_t Nvr1, Nvr2;
 
   // Lecture des deux octets de signature
@@ -106,13 +112,16 @@ bool verifierPileRTC(Adafruit_ST7735 &tft) {
   RTC.getRAM(55, (uint8_t *)&Nvr2, 1);
   delay(100);
 
-  if (Nvr1 == 0x5A && Nvr2 == 0xA5) {
+  if (Nvr1 == 0x5A && Nvr2 == 0xA5)
+  {
     // ✅ Pile et NVRAM valides
     tft.setTextColor(ST77XX_GREEN);
     tft.println("NvRam  OK");
     tft.println("Pile   OK");
     return true;
-  } else {
+  }
+  else
+  {
     // ⚠️ Données corrompues → réinitialisation NVRAM
     tft.setTextColor(ST77XX_RED);
     tft.println("NvRam  NOT OK");
@@ -120,7 +129,8 @@ bool verifierPileRTC(Adafruit_ST7735 &tft) {
 
     // Effacement complet
     uint8_t zero = 0;
-    for (int i = 0; i < 56; i++) {
+    for (int i = 0; i < 56; i++)
+    {
       RTC.setRAM(i, (uint8_t *)&zero, 1);
     }
 
@@ -135,27 +145,21 @@ bool verifierPileRTC(Adafruit_ST7735 &tft) {
   }
 }
 
-
-
-
-
-
-
 // ********************************************************************************
-void sequenceFinaleSetup(unsigned long temps) {
-  //Serial.println("Appel de sequenceFinaleSetup");
+void sequenceFinaleSetup(unsigned long temps)
+{
+  // Serial.println("Appel de sequenceFinaleSetup");
 }
 
-
-//void sequenceFinaleSetup(unsigned long currentMillis);
+// void sequenceFinaleSetup(unsigned long currentMillis);
 
 I2C_eeprom ee(0x50, I2C_DEVICESIZE_24LC32);
 
-#define TFT_SCLK 18  // SPI clock
-#define TFT_MOSI 23  // SPI Data
-#define TFT_CS 15    // Display enable (Chip select)
+#define TFT_SCLK 18 // SPI clock
+#define TFT_MOSI 23 // SPI Data
+#define TFT_CS 15   // Display enable (Chip select)
 #define TFT_RST 13
-#define TFT_DC 4  // register select
+#define TFT_DC 4 // register select
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
 
@@ -168,29 +172,26 @@ bool affichageConfirmation = false;
 bool resetEnCours = false;
 unsigned long momentConfirmation = 0;
 
-
 unsigned long dernierAffichageCpt = 0;
-const unsigned long intervalleAffichageCpt = 1000;  // 50 ms
+const unsigned long intervalleAffichageCpt = 1000; // 50 ms
 
 bool pubEnCours = false;
 unsigned long pubStartTime = 0;
-const unsigned long dureeAffichagePub = 3000;  // 3 secondes
-
+const unsigned long dureeAffichagePub = 3000; // 3 secondes
 
 unsigned long resetStartTime = 0;
-const unsigned long dureeAffichageReset = 3000;  // 3 secondes
+const unsigned long dureeAffichageReset = 3000; // 3 secondes
 
 bool affichageResetFait = false;
 
-const unsigned long delaiEntreImpulsions = 1000;  // ← délai entre deux impulsions (en ms)
-unsigned long dernierCreditEnvoye = 0;            // ← chronomètre de la dernière impulsion
+const unsigned long delaiEntreImpulsions = 1000; // ← délai entre deux impulsions (en ms)
+unsigned long dernierCreditEnvoye = 0;           // ← chronomètre de la dernière impulsion
 
-const unsigned long dureeImpulsion = 1;  // Durée impulsion relais
+const unsigned long dureeImpulsion = 1; // Durée impulsion relais
 // === Variables ===
 bool relaisEnCours = false;
 unsigned long relaisStartTime = 0;
 unsigned int compteurCredits;
-
 
 const uint8_t BUTTON_1_PIN = 32;
 const uint8_t BUTTON_2_PIN = 35;
@@ -200,40 +201,40 @@ const uint8_t buz = 26;
 // Ajouter en haut du fichier avec les autres variables globales :
 bool lastStateBtn2 = LOW;
 bool lastStateBtn3 = LOW;
-bool forcerMajEcran = false;        // ← Réinitialisation cpt()
-int modeAffichage = 0;              // 0 = normal, 2 = bouton2, 3 = bouton3
-bool premierAffichageFait = false;  // Pour forcer cpt() au tout début
+bool forcerMajEcran = false;       // ← Réinitialisation cpt()
+int modeAffichage = 0;             // 0 = normal, 2 = bouton2, 3 = bouton3
+bool premierAffichageFait = false; // Pour forcer cpt() au tout début
 void cpt();
 void afficherRemiseAZero();
 void afficherPublicite();
 
-
 unsigned long dernierAppui = 0;
-const unsigned long debounceDelay = 200;  // 200 ms pour l’anti-rebond
+const unsigned long debounceDelay = 200; // 200 ms pour l’anti-rebond
 
-enum ModeEcran { MODE_CPT,
-                 MODE_BOUTON1,
-                 MODE_BOUTON2,
-                 MODE_BOUTON3 };
+enum ModeEcran
+{
+  MODE_CPT,
+  MODE_BOUTON1,
+  MODE_BOUTON2,
+  MODE_BOUTON3
+};
 
 ModeEcran modeEcran = MODE_CPT;
 
-int etatRemiseTotale = 0;  // 0 = attente, 1 = affichage fait, 2 = reset fait
+int etatRemiseTotale = 0; // 0 = attente, 1 = affichage fait, 2 = reset fait
 
 int prev_Mcmptr1 = -1;
 int prev_cmptrjrn = -1;
 int prev_totcmptr = -1;
 int prev_compteurCredits = -1;
 
-
 bool connecte;
 uint8_t rel01 = 25;
 uint8_t rel02 = 27;
 
 bool ledState1 = LOW;
-//uint16_t Mcmptr1, Mcmptr2, Mcmptr3;
+// uint16_t Mcmptr1, Mcmptr2, Mcmptr3;
 uint16_t Mcmptr1, Mcmptr2, Mcmptr3;
-
 
 uint16_t cmptr01 = 0;
 bool Mfp1, Mfs1;
@@ -249,9 +250,9 @@ uint8_t etapeSetup = 0;
 unsigned long previousMillisSetup = 0;
 
 ezButton buttonArray[] = {
-  ezButton(BUTTON_1_PIN),
-  ezButton(BUTTON_2_PIN),
-  ezButton(BUTTON_3_PIN),
+    ezButton(BUTTON_1_PIN),
+    ezButton(BUTTON_2_PIN),
+    ezButton(BUTTON_3_PIN),
 };
 
 uint16_t TimeIsSet;
@@ -259,75 +260,78 @@ uint8_t Echantillon_ms_precedent = 0;
 uint16_t duree = 0;
 uint16_t compteur = 0;
 
-
 // *****************************111111111111
 // À définir dans ton fichier principal ou ailleurs :
-//extern uint8_t broadcastAddress[]; // Adresse MAC du peer (ESP-NOW)
+// extern uint8_t broadcastAddress[]; // Adresse MAC du peer (ESP-NOW)
 String getMacString(const uint8_t *mac);
 void debugPrint(const String &msg);
 
 // *******************1111111***************************
 
-
-//void sequenceFinaleSetup(unsigned long currentMillis);
-
+// void sequenceFinaleSetup(unsigned long currentMillis);
 
 // uint8_t broadcastAddress[] = {0x5C, 0x01, 0x3B, 0x6A, 0x12, 0x64};  // Adresse du peer
-esp_now_peer_info_t peerInfo;  // Déclare peerInfo
+esp_now_peer_info_t peerInfo; // Déclare peerInfo
 
-uint16_t arr1[2];  // Déclare arr1 pour stocker les compteurs
+uint16_t arr1[2]; // Déclare arr1 pour stocker les compteurs
 
 // Structure pour contenir les données reçues
-typedef struct struct_message {
-  uint16_t cp1;  // Incrément compteur
-  uint16_t cp2;  // Compteur journalier
-  uint16_t cp3;  // Compteur total
+typedef struct struct_message
+{
+  uint16_t cp1; // Incrément compteur
+  uint16_t cp2; // Compteur journalier
+  uint16_t cp3; // Compteur total
   bool fp1;
   bool fs1;
 } struct_message;
 
 struct_message dataSent, dataRcvr;
 
-void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
+void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len)
+{
   memcpy(&dataRcvr, incomingData, sizeof(dataRcvr));
   Mfp1 = 0;
 
   // Si on reçoit des crédits (cp1 > 0), on remet compteurCredits à zéro
-  if ((dataRcvr.cp1 > 0) && (Mcmptr1 == 0)) {
+  if ((dataRcvr.cp1 > 0) && (Mcmptr1 == 0))
+  {
     compteurCredits = 0;
-    //Serial.println("Réception de crédits : compteurCredits remis à zéro.");
+    // Serial.println("Réception de crédits : compteurCredits remis à zéro.");
   }
 
-  Mcmptr1 += dataRcvr.cp1;  // ⬅️ on ajoute au lieu d’écraser
+  Mcmptr1 += dataRcvr.cp1; // ⬅️ on ajoute au lieu d’écraser
   Mcmptr2 = dataRcvr.cp2;
   Mcmptr3 = dataRcvr.cp3;
   Mfp1 = dataRcvr.fp1;
   Mfs1 = dataRcvr.fs1;
-  //Serial.println(dataRcvr.cp1);
-  //Serial.print("Bool: ");
-  //Serial.print(dataRcvr.fp1);
-  //Serial.print("; ");
-  //Serial.println(dataRcvr.fs1);
+  // Serial.println(dataRcvr.cp1);
+  // Serial.print("Bool: ");
+  // Serial.print(dataRcvr.fp1);
+  // Serial.print("; ");
+  // Serial.println(dataRcvr.fs1);
   memset(&dataRcvr, 0, sizeof(dataRcvr));
 }
 
-void writeToNVram(void) {
-  RTC.setRAM( 5, (uint8_t *)&cmptrjrn, sizeof(uint16_t));
-  RTC.setRAM( 7, (uint8_t *)&totcmptr, sizeof(uint16_t));
-  RTC.setRAM( 9, (uint8_t *)&Mcmptr1, sizeof(uint16_t));
+void writeToNVram(void)
+{
+  RTC.setRAM(5, (uint8_t *)&cmptrjrn, sizeof(uint16_t));
+  RTC.setRAM(7, (uint8_t *)&totcmptr, sizeof(uint16_t));
+  RTC.setRAM(9, (uint8_t *)&Mcmptr1, sizeof(uint16_t));
   RTC.setRAM(16, (uint8_t *)&compteurCredits, sizeof(uint16_t));
-  //delay(100);  // Code pour écrire dans la NVRAM (ou EEPROM)
+  // delay(100);  // Code pour écrire dans la NVRAM (ou EEPROM)
 }
 
-void readFromNVram(void) {
-  RTC.getRAM( 5, (uint8_t *)&cmptrjrn, sizeof(uint16_t));
-  RTC.getRAM( 7, (uint8_t *)&totcmptr, sizeof(uint16_t));
-  RTC.getRAM( 9, (uint8_t *)&Mcmptr1, sizeof(uint16_t));
+void readFromNVram(void)
+{
+  RTC.getRAM(5, (uint8_t *)&cmptrjrn, sizeof(uint16_t));
+  RTC.getRAM(7, (uint8_t *)&totcmptr, sizeof(uint16_t));
+  RTC.getRAM(9, (uint8_t *)&Mcmptr1, sizeof(uint16_t));
   RTC.getRAM(16, (uint8_t *)&compteurCredits, sizeof(uint16_t));
-  //delay(100);  // Code pour lire depuis la NVRAM (ou EEPROM)
+  // delay(100);  // Code pour lire depuis la NVRAM (ou EEPROM)
 }
 
-void SendCmptr(void) {
+void SendCmptr(void)
+{
   dataSent.cp1 = cmptr01;
   dataSent.cp2 = cmptrjrn;
   dataSent.cp3 = totcmptr;
@@ -339,57 +343,68 @@ void SendCmptr(void) {
 
 void declencherImpulsionRelais();
 
-void ajouterCredit() {
+void ajouterCredit()
+{
   compteurCredits++;
-  //Serial.print("Crédit ajouté. Total = ");
-  //Serial.println(compteurCredits);
+  // Serial.print("Crédit ajouté. Total = ");
+  // Serial.println(compteurCredits);
   declencherImpulsionRelais();
 }
 
-void declencherImpulsionRelais() {
-  if (relaisEnCours) return;  // Empêche de relancer l’impulsion si en cours
+void declencherImpulsionRelais()
+{
+  if (relaisEnCours)
+    return; // Empêche de relancer l’impulsion si en cours
 
-  //Serial.println("Relais ACTIVÉ");
-  digitalWrite(rel02, HIGH);  // Active relais (ou LOW si relais actif à LOW)
+  // Serial.println("Relais ACTIVÉ");
+  digitalWrite(rel02, HIGH); // Active relais (ou LOW si relais actif à LOW)
   relaisStartTime = millis();
   relaisEnCours = true;
 }
 
-void gestionRelais() {
-  if (relaisEnCours && millis() - relaisStartTime >= dureeImpulsion) {
-    //Serial.println("Relais DÉSACTIVÉ");
-    digitalWrite(rel02, LOW);  // Désactive relais (ou HIGH si relais actif à LOW)
+void gestionRelais()
+{
+  if (relaisEnCours && millis() - relaisStartTime >= dureeImpulsion)
+  {
+    // Serial.println("Relais DÉSACTIVÉ");
+    digitalWrite(rel02, LOW); // Désactive relais (ou HIGH si relais actif à LOW)
     relaisEnCours = false;
   }
 }
 
-void lancerPublicite() {
+void lancerPublicite()
+{
   // Cette fonction ne fait que démarrer la pub, pas la gérer
-  if (!pubEnCours) {
-    afficherPublicite();      // Affiche la publicité une fois
-    pubStartTime = millis();  // Démarre le chrono
+  if (!pubEnCours)
+  {
+    afficherPublicite();     // Affiche la publicité une fois
+    pubStartTime = millis(); // Démarre le chrono
     pubEnCours = true;
   }
 }
 
-void verifierFinPublicite() {
-  if (pubEnCours && millis() - pubStartTime >= dureeAffichagePub) {
+void verifierFinPublicite()
+{
+  if (pubEnCours && millis() - pubStartTime >= dureeAffichagePub)
+  {
     pubEnCours = false;
     modeEcran = MODE_CPT;
     forcerMajEcran = true;
   }
 }
 
-
-void gererAppuiLongRemiseJournalier() {
+void gererAppuiLongRemiseJournalier()
+{
   static bool boutonAppuye = false;
   static unsigned long debutAppui = 0;
   static unsigned long dernierBip = 0;
   static bool resetFait = false;
   const unsigned long dureeAppuiNecessaire = 3000;
 
-  if (digitalRead(BUTTON_3_PIN) == LOW) {
-    if (!boutonAppuye) {
+  if (digitalRead(BUTTON_3_PIN) == LOW)
+  {
+    if (!boutonAppuye)
+    {
       boutonAppuye = true;
       debutAppui = millis();
       dernierBip = 0;
@@ -405,8 +420,10 @@ void gererAppuiLongRemiseJournalier() {
     unsigned long maintenant = millis();
     unsigned long dureeAppui = maintenant - debutAppui;
 
-    if (!resetFait) {
-      if (maintenant - dernierBip >= 500) {
+    if (!resetFait)
+    {
+      if (maintenant - dernierBip >= 500)
+      {
         jouerSon(0);
         dernierBip = maintenant;
       }
@@ -422,7 +439,8 @@ void gererAppuiLongRemiseJournalier() {
       tft.fillRect(posX + 1, posY + 1, largeurRemplie, hauteurBarre - 2, ST77XX_GREEN);
     }
 
-    if (dureeAppui >= dureeAppuiNecessaire && !resetFait) {
+    if (dureeAppui >= dureeAppuiNecessaire && !resetFait)
+    {
       cmptrjrn = 0;
       cmptr01 = 0;
 
@@ -453,9 +471,11 @@ void gererAppuiLongRemiseJournalier() {
 
       resetFait = true;
     }
-
-  } else {
-    if (boutonAppuye && !resetFait) {
+  }
+  else
+  {
+    if (boutonAppuye && !resetFait)
+    {
       tft.fillScreen(ST77XX_BLACK);
       tft.setTextSize(2);
       tft.setCursor(20, 50);
@@ -471,18 +491,18 @@ void gererAppuiLongRemiseJournalier() {
   }
 }
 
-
-
-
-void gererAppuiLongRemiseTotaux() {
+void gererAppuiLongRemiseTotaux()
+{
   static bool boutonAppuye = false;
   static unsigned long debutAppui = 0;
   static unsigned long dernierBip = 0;
   static bool resetFait = false;
   const unsigned long dureeAppuiNecessaire = 3000;
 
-  if (digitalRead(BUTTON_1_PIN) == LOW) {
-    if (!boutonAppuye) {
+  if (digitalRead(BUTTON_1_PIN) == LOW)
+  {
+    if (!boutonAppuye)
+    {
       boutonAppuye = true;
       debutAppui = millis();
       dernierBip = 0;
@@ -493,7 +513,8 @@ void gererAppuiLongRemiseTotaux() {
     unsigned long maintenant = millis();
     unsigned long dureeAppui = maintenant - debutAppui;
 
-    if (etatRemiseTotale == 0) {
+    if (etatRemiseTotale == 0)
+    {
       tft.fillScreen(ST77XX_BLACK);
       tft.setTextSize(2);
       tft.setTextColor(ST77XX_WHITE);
@@ -502,9 +523,11 @@ void gererAppuiLongRemiseTotaux() {
       etatRemiseTotale = 1;
     }
 
-    if (!resetFait) {
+    if (!resetFait)
+    {
       // Bips pendant l'appui long
-      if (maintenant - dernierBip >= 500) {
+      if (maintenant - dernierBip >= 500)
+      {
         jouerSon(0);
         dernierBip = maintenant;
       }
@@ -520,7 +543,8 @@ void gererAppuiLongRemiseTotaux() {
       tft.fillRect(posX + 1, posY + 1, largeurRemplie, hauteurBarre - 2, ST77XX_ORANGE);
     }
 
-    if (dureeAppui >= dureeAppuiNecessaire && !resetFait) {
+    if (dureeAppui >= dureeAppuiNecessaire && !resetFait)
+    {
       cmptrjrn = 0;
       cmptr01 = 0;
       totcmptr = 0;
@@ -554,9 +578,11 @@ void gererAppuiLongRemiseTotaux() {
       resetFait = true;
       etatRemiseTotale = 2;
     }
-
-  } else {
-    if (boutonAppuye && !resetFait) {
+  }
+  else
+  {
+    if (boutonAppuye && !resetFait)
+    {
       tft.fillScreen(ST77XX_BLACK);
       tft.setTextSize(2);
       tft.setCursor(20, 50);
@@ -574,257 +600,256 @@ void gererAppuiLongRemiseTotaux() {
   }
 }
 
-
 // === Constantes de délai ===
-const unsigned long DELAI_I2C_SCAN     = 1500;
-const unsigned long DELAI_FIN_SCAN     = 100;
-const unsigned long DELAI_FIN_Nvram    = 1500;
-const unsigned long DELAI_FIN_Peer     = 2000;
-const unsigned long DELAI_FINAL_STEP1  = 500;
-const unsigned long DELAI_FINAL_STEP2  = 3000;
-const unsigned long DELAI_SON1         = 1000;
-const unsigned long DELAI_RELAIS_ON    = 5000;
-const unsigned long DELAI_RELAIS_OFF   = 1800;
+const unsigned long DELAI_I2C_SCAN = 1500;
+const unsigned long DELAI_FIN_SCAN = 100;
+const unsigned long DELAI_FIN_Nvram = 1500;
+const unsigned long DELAI_FIN_Peer = 2000;
+const unsigned long DELAI_FINAL_STEP1 = 500;
+const unsigned long DELAI_FINAL_STEP2 = 3000;
+const unsigned long DELAI_SON1 = 1000;
+const unsigned long DELAI_RELAIS_ON = 5000;
+const unsigned long DELAI_RELAIS_OFF = 1800;
 const unsigned long DELAI_START_SCREEN = 5000;
-const unsigned long DELAI_FIN_SETUP    = 2000;
-const unsigned long intervalLoop       = 100;  // ralentit à ~100 fois/sec
+const unsigned long DELAI_FIN_SETUP = 2000;
+const unsigned long intervalLoop = 100; // ralentit à ~100 fois/sec
 
 void setupNonBloquant();
 
-void setup() {
+void setup()
+{
   setupNonBloquant();
 }
 
-
-
-
-
-
-
-
-
-void setupNonBloquant() {
+void setupNonBloquant()
+{
   unsigned long currentMillis = millis();
 
   static bool rtcPresent = true;
- 
- 
-  switch (etapeSetup) {
-    case 0:
-      // Initialisation des E/S et modules
-      pinMode(BUTTON_1_PIN, INPUT_PULLUP);
-      pinMode(BUTTON_2_PIN, INPUT_PULLUP);
-      pinMode(BUTTON_3_PIN, INPUT_PULLUP);
-      initialiserSon();
-      initialiserModules();
 
-      Serial.begin(115200);
+  switch (etapeSetup)
+  {
+  case 0:
+    // Initialisation des E/S et modules
+    pinMode(BUTTON_1_PIN, INPUT_PULLUP);
+    pinMode(BUTTON_2_PIN, INPUT_PULLUP);
+    pinMode(BUTTON_3_PIN, INPUT_PULLUP);
+    initialiserSon();
+    initialiserModules();
 
-      tft.initR(INITR_GREENTAB);
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setRotation(3);
+    Serial.begin(115200);
 
-      Wire.begin(21, 22);
-      WiFi.mode(WIFI_STA);
-      ee.begin();
-
-      afficherNum();
-      previousMillisSetup = currentMillis;
-      etapeSetup++;
-      break;
-
-    case 1:
-      if (currentMillis - previousMillisSetup >= DELAI_I2C_SCAN) {
-        afficherNumSerie(tft);
-        afficherSetup();
-        previousMillisSetup = currentMillis;
-        etapeSetup++;
-      }
-      break;
-
-    case 2:
-      if (currentMillis - previousMillisSetup >= DELAI_I2C_SCAN) {
-        tft.setTextSize(2);
-        tft.fillScreen(ST77XX_BLACK);
-        tft.setCursor(0, 0);
-        tft.setTextColor(ST77XX_ORANGE);
-        tft.println("Scan I2C...");
-        tft.setTextColor(ST77XX_WHITE);
-        address = 1;
-        nDevices = 0;
-        etapeSetup++;
-        previousMillisSetup = currentMillis;
-      }
-      break;
-
-
-    case 3:
-      if (currentMillis - previousMillisSetup >= 100) {  // ← ajout d'un petit délai entre chaque adresse
-        if (address < 127) {
-          Wire.beginTransmission(address);
-          byte error = Wire.endTransmission();
-          if (error == 0) {
-            tft.setTextSize(2);
-            tft.setTextColor(ST77XX_WHITE);
-            tft.print("I2C  >0x");
-            tft.println(address, HEX);
-            jouerSon(1);
-            nDevices++;
-          }
-          address++;
-          previousMillisSetup = currentMillis;  // ← MAJ du temps ici
-        } else {
-          etapeSetup++;
-          previousMillisSetup = currentMillis;
-        }
-      }
-      break;
-
-
-    case 4:
-      rtcPresent = RTC.isPresent();
-      if (!rtcPresent) {
-        //tft.fillScreen(ST77XX_RED);
-        //tft.setCursor(0, 40);
-        tft.setTextColor(ST77XX_RED);
-        tft.println("");
-        tft.println("HW111> OFF");
-        tft.setTextColor(ST77XX_WHITE);
-        tft.println("");
-      } else {
-        tft.println("HW111> OK");
-      }
-      previousMillisSetup = currentMillis;
-      etapeSetup++;
-      break;
-
-
-
-
-
-
-
-
-
-
-
-    case 5:
-      if (currentMillis - previousMillisSetup >= DELAI_FIN_SCAN) {
-        if (nDevices == 0) {
-          tft.println("Er03 > I2C");
-        } else {
-          //tft.println("Scan > OK");
-        }
-
-        if (esp_now_init() != ESP_OK) {
-          tft.println("Er01 > ESP-NOW");
-          setupTermine = true;  // Abandon
-          return;
-        } else {
-          tft.println("NOW  > Ok");
-        }
-
-        etapeSetup++;
-        previousMillisSetup = currentMillis;
-      }
-      break;
-
-
-
- 
-
-
-
-    case 6:
-      {
-        // tft.fillScreen(ST77XX_BLACK);
-        bool adresseCorrecte = false;
-        bool pcfDetecte = false;
-        uint8_t adresseTrouvee = 0;
-
-        // Balayage des adresses I2C
-        for (uint8_t addr = 0x20; addr <= 0x3F; addr++) {
-          Wire.beginTransmission(addr);
-          if (Wire.endTransmission() == 0) {
-            // Test de lecture d'un registre du PCF8574 ?
-            // Pas possible directement, donc on suppose que c'est un PCF8574
-            pcfDetecte = true;
-            adresseTrouvee = addr;
-            break;  // Si tu veux prendre le premier trouvé
-          }
-        }
-
-        if (pcfDetecte) {
-          if (!rtcPresent) {
-            tft.println("");
-          }
-          if (adresseTrouvee == PCF_ADDRESS) {
-            pcf8574.begin(adresseTrouvee);
-            tft.setTextColor(ST77XX_GREEN);
-            tft.print("PCF  >0x");
-            tft.println(adresseTrouvee, HEX);
-            jouerSon(2);
-
-          } else {
-            // PCF 8574 pas sur adresse définie
-            tft.setTextColor(ST77XX_RED);
-            tft.print("PCFer>0x");
-            tft.println(pcf_address_definie, HEX);
-            jouerSon(2);
-          }
-
-        } else {
-          tft.setTextColor(ST77XX_RED);
-          tft.setTextSize(2);
-          tft.println("PCF  >OFF");
-          // PCF8574 Absent
-          jouerSon(0);
-        }
-
-        // Blocage volontaire si erreur
-        if (!pcfDetecte || adresseTrouvee != PCF_ADDRESS) {
-          // while (1)  ;
-            
-        }
-        previousMillisSetup = currentMillis;
-        etapeSetup++;
-        break;
-      }
-
-
-
-
-
-    case 7:
-  if (currentMillis - previousMillisSetup >= DELAI_FIN_Nvram) {        
+    tft.initR(INITR_GREENTAB);
     tft.fillScreen(ST77XX_BLACK);
-    tft.setCursor(0, 2);
+    tft.setRotation(3);
 
-    bool pileOK = verifierPileRTC(tft);  // ⬅️ Vérifie la NVRAM et la pile
+    Wire.begin(21, 22);
+    WiFi.mode(WIFI_STA);
+    ee.begin();
 
-    if (pileOK) {
-      tft.setTextColor(ST77XX_GREEN);
-      tft.println("");
-      tft.println("Initialisation OK");
-      jouerSon(1);  // ✅ petit bip aigu si tout va bien
-    } else {
-      tft.setTextColor(ST77XX_YELLOW);
-      tft.println("");
-      tft.println("Effacement NVRAM fait");
-      jouerSon(0);  // ⚠️ bip grave si pile absente ou mémoire effacée
-    }
-
+    afficherNum();
     previousMillisSetup = currentMillis;
     etapeSetup++;
-  }
-  break;
+    break;
 
- 
-    case 8:
-     if (currentMillis - previousMillisSetup >= DELAI_FIN_Peer) {
-      //Serial.print("Étape 8 - DELAI atteint après ");
-      //Serial.print(currentMillis - previousMillisSetup);
-      //Serial.println(" ms");
+  case 1:
+    if (currentMillis - previousMillisSetup >= DELAI_I2C_SCAN)
+    {
+      afficherNumSerie(tft);
+      afficherSetup();
+      previousMillisSetup = currentMillis;
+      etapeSetup++;
+    }
+    break;
+
+  case 2:
+    if (currentMillis - previousMillisSetup >= DELAI_I2C_SCAN)
+    {
+      tft.setTextSize(2);
+      tft.fillScreen(ST77XX_BLACK);
+      tft.setCursor(0, 0);
+      tft.setTextColor(ST77XX_ORANGE);
+      tft.println("Scan I2C...");
+      tft.setTextColor(ST77XX_WHITE);
+      address = 1;
+      nDevices = 0;
+      etapeSetup++;
+      previousMillisSetup = currentMillis;
+    }
+    break;
+
+  case 3:
+    if (currentMillis - previousMillisSetup >= 100)
+    { // ← ajout d'un petit délai entre chaque adresse
+      if (address < 127)
+      {
+        Wire.beginTransmission(address);
+        byte error = Wire.endTransmission();
+        if (error == 0)
+        {
+          tft.setTextSize(2);
+          tft.setTextColor(ST77XX_WHITE);
+          tft.print("I2C  >0x");
+          tft.println(address, HEX);
+          jouerSon(1);
+          nDevices++;
+        }
+        address++;
+        previousMillisSetup = currentMillis; // ← MAJ du temps ici
+      }
+      else
+      {
+        etapeSetup++;
+        previousMillisSetup = currentMillis;
+      }
+    }
+    break;
+
+  case 4:
+    rtcPresent = RTC.isPresent();
+    if (!rtcPresent)
+    {
+      // tft.fillScreen(ST77XX_RED);
+      // tft.setCursor(0, 40);
+      tft.setTextColor(ST77XX_RED);
+      tft.println("");
+      tft.println("HW111> OFF");
+      tft.setTextColor(ST77XX_WHITE);
+      tft.println("");
+    }
+    else
+    {
+      tft.println("HW111> OK");
+    }
+    previousMillisSetup = currentMillis;
+    etapeSetup++;
+    break;
+
+  case 5:
+    if (currentMillis - previousMillisSetup >= DELAI_FIN_SCAN)
+    {
+      if (nDevices == 0)
+      {
+        tft.println("Er03 > I2C");
+      }
+      else
+      {
+        // tft.println("Scan > OK");
+      }
+
+      if (esp_now_init() != ESP_OK)
+      {
+        tft.println("Er01 > ESP-NOW");
+        setupTermine = true; // Abandon
+        return;
+      }
+      else
+      {
+        tft.println("NOW  > Ok");
+      }
+
+      etapeSetup++;
+      previousMillisSetup = currentMillis;
+    }
+    break;
+
+  case 6:
+  {
+    // tft.fillScreen(ST77XX_BLACK);
+    bool adresseCorrecte = false;
+    bool pcfDetecte = false;
+    uint8_t adresseTrouvee = 0;
+
+    // Balayage des adresses I2C
+    for (uint8_t addr = 0x20; addr <= 0x3F; addr++)
+    {
+      Wire.beginTransmission(addr);
+      if (Wire.endTransmission() == 0)
+      {
+        // Test de lecture d'un registre du PCF8574 ?
+        // Pas possible directement, donc on suppose que c'est un PCF8574
+        pcfDetecte = true;
+        adresseTrouvee = addr;
+        break; // Si tu veux prendre le premier trouvé
+      }
+    }
+
+    if (pcfDetecte)
+    {
+      if (!rtcPresent)
+      {
+        tft.println("");
+      }
+      if (adresseTrouvee == PCF_ADDRESS)
+      {
+        pcf8574.begin(adresseTrouvee);
+        tft.setTextColor(ST77XX_GREEN);
+        tft.print("PCF  >0x");
+        tft.println(adresseTrouvee, HEX);
+        jouerSon(2);
+      }
+      else
+      {
+        // PCF 8574 pas sur adresse définie
+        tft.setTextColor(ST77XX_RED);
+        tft.print("PCFer>0x");
+        tft.println(pcf_address_definie, HEX);
+        jouerSon(2);
+      }
+    }
+    else
+    {
+      tft.setTextColor(ST77XX_RED);
+      tft.setTextSize(2);
+      tft.println("PCF  >OFF");
+      // PCF8574 Absent
+      jouerSon(0);
+    }
+
+    // Blocage volontaire si erreur
+    if (!pcfDetecte || adresseTrouvee != PCF_ADDRESS)
+    {
+      // while (1)  ;
+    }
+    previousMillisSetup = currentMillis;
+    etapeSetup++;
+    break;
+  }
+
+  case 7:
+    if (currentMillis - previousMillisSetup >= DELAI_FIN_Nvram)
+    {
+      tft.fillScreen(ST77XX_BLACK);
+      tft.setCursor(0, 2);
+
+      bool pileOK = verifierPileRTC(tft); // ⬅️ Vérifie la NVRAM et la pile
+
+      if (pileOK)
+      {
+        tft.setTextColor(ST77XX_GREEN);
+        tft.println("");
+        tft.println("Initialisation OK");
+        jouerSon(1); // ✅ petit bip aigu si tout va bien
+      }
+      else
+      {
+        tft.setTextColor(ST77XX_YELLOW);
+        tft.println("");
+        tft.println("Effacement NVRAM fait");
+        jouerSon(0); // ⚠️ bip grave si pile absente ou mémoire effacée
+      }
+
+      previousMillisSetup = currentMillis;
+      etapeSetup++;
+    }
+    break;
+
+  case 8:
+    if (currentMillis - previousMillisSetup >= DELAI_FIN_Peer)
+    {
+      // Serial.print("Étape 8 - DELAI atteint après ");
+      // Serial.print(currentMillis - previousMillisSetup);
+      // Serial.println(" ms");
 
       pinMode(rel01, OUTPUT);
       pinMode(rel02, OUTPUT);
@@ -833,7 +858,8 @@ void setupNonBloquant() {
 
       pcf8574.write(0, LOW);
       pcf8574.write(1, LOW);
-      for (int i = 2; i < 8; i++) {
+      for (int i = 2; i < 8; i++)
+      {
         pcf8574.write(i, HIGH);
       }
 
@@ -845,136 +871,152 @@ void setupNonBloquant() {
       peerInfo.channel = 0;
       peerInfo.encrypt = false;
 
-      esp_now_del_peer(peerInfo.peer_addr);  // En cas de doublon
+      esp_now_del_peer(peerInfo.peer_addr); // En cas de doublon
       esp_err_t result = esp_now_add_peer(&peerInfo);
-      //Serial.print("esp_now_add_peer() result: ");
-      //Serial.println(result);  // 0 = OK
+      // Serial.print("esp_now_add_peer() result: ");
+      // Serial.println(result);  // 0 = OK
       tft.setCursor(0, 98);
-      if (result != ESP_OK) {
-       tft.setTextColor(ST77XX_RED);
-       tft.setTextSize(2);
-      
-       tft.println("Er02 > Peer");
-       setupTermine = true;
-       return;
-      } else {
-       tft.setTextColor(ST77XX_GREEN);
-       tft.setTextSize(2);
-       //Serial.println(">>> Affichage TFT : Peer > Ok ");
-        
-       tft.println("Peer  Ok");
-      
-       delay(1000);  // ← test : laisse le temps de lire
-     }
+      if (result != ESP_OK)
+      {
+        tft.setTextColor(ST77XX_RED);
+        tft.setTextSize(2);
 
-    ledState1 = 0;
-    digitalWrite(led01, ledState1);
-
-    readFromNVram();
-
-    // afficherInit();
-
-    previousMillisSetup = currentMillis;
-    etapeSetup++;
-  }
-  break;
-
- 
-    case 9:
-      if (currentMillis - previousMillisSetup >= DELAI_FINAL_STEP2) {
-        if (rtcPresent) {
-          RTC.getRAM(50, (uint8_t *)&TimeIsSet, sizeof(uint16_t));
-          if (TimeIsSet != 0xaa55) {
-            TimeIsSet = 0xaa55;
-            RTC.setRAM(50, (uint8_t *)&TimeIsSet, sizeof(uint16_t));
-          }
-        }
-
-        ledState1 = 0;
-        digitalWrite(led01, ledState1);
-
-        readFromNVram();
-        
-        afficherInit();
-
-        previousMillisSetup = currentMillis;
-        etapeSetup++;
-      }
-      break;
-
-    case 10:
-      if (currentMillis - previousMillisSetup >= 1000) {
-        jouerSon(1);
-
-        previousMillisSetup = currentMillis;
-        etapeSetup++;
-      }
-      break;
-
-    case 11:
-      if (currentMillis - previousMillisSetup >= 5000) {
-        jouerSon(1);
-        digitalWrite(rel01, HIGH);
-        previousMillisSetup = currentMillis;
-        etapeSetup++;
-      }
-      break;
-
-    case 12:
-      if (currentMillis - previousMillisSetup >= 1800) {
-        digitalWrite(rel01, LOW);
-        jouerSon(1);
-        //Serial.println(WiFi.macAddress());
-        previousMillisSetup = currentMillis;
-        etapeSetup++;
-      }
-      break;
-
-    case 13:
-      if (currentMillis - previousMillisSetup >= 5000) {
-        jouerSon(2);
-        afficherStart();
-        previousMillisSetup = currentMillis;
-        etapeSetup++;
-      }
-      break;
-
-    case 14:
-      if (currentMillis - previousMillisSetup >= 2000) {
-        digitalWrite(rel02, LOW);
+        tft.println("Er02 > Peer");
         setupTermine = true;
-        forcerMajEcran = true;         // Force le premier affichage
-        premierAffichageFait = false;  // ← important
-        Mcmptr1 = 0;                   // ← Remise à zéro des points/crédits reçus
-        compteurCredits = 0;
-        //Serial.println("Setup non bloquant terminé !");  // Initialisation
+        return;
       }
-      sequenceFinaleSetup(currentMillis);
-      break;
-    default:
-      tft.println("Err > Setup etape inconnue");
-      break;
+      else
+      {
+        tft.setTextColor(ST77XX_GREEN);
+        tft.setTextSize(2);
+        // Serial.println(">>> Affichage TFT : Peer > Ok ");
+
+        tft.println("Peer  Ok");
+
+        delay(1000); // ← test : laisse le temps de lire
+      }
+
+      ledState1 = 0;
+      digitalWrite(led01, ledState1);
+
+      readFromNVram();
+
+      // afficherInit();
+
+      previousMillisSetup = currentMillis;
+      etapeSetup++;
+    }
+    break;
+
+  case 9:
+    if (currentMillis - previousMillisSetup >= DELAI_FINAL_STEP2)
+    {
+      if (rtcPresent)
+      {
+        RTC.getRAM(50, (uint8_t *)&TimeIsSet, sizeof(uint16_t));
+        if (TimeIsSet != 0xaa55)
+        {
+          TimeIsSet = 0xaa55;
+          RTC.setRAM(50, (uint8_t *)&TimeIsSet, sizeof(uint16_t));
+        }
+      }
+
+      ledState1 = 0;
+      digitalWrite(led01, ledState1);
+
+      readFromNVram();
+
+      afficherInit();
+
+      previousMillisSetup = currentMillis;
+      etapeSetup++;
+    }
+    break;
+
+  case 10:
+    if (currentMillis - previousMillisSetup >= 1000)
+    {
+      jouerSon(1);
+
+      previousMillisSetup = currentMillis;
+      etapeSetup++;
+    }
+    break;
+
+  case 11:
+    if (currentMillis - previousMillisSetup >= 5000)
+    {
+      jouerSon(1);
+      digitalWrite(rel01, HIGH);
+      previousMillisSetup = currentMillis;
+      etapeSetup++;
+    }
+    break;
+
+  case 12:
+    if (currentMillis - previousMillisSetup >= 1800)
+    {
+      digitalWrite(rel01, LOW);
+      jouerSon(1);
+      // Serial.println(WiFi.macAddress());
+      previousMillisSetup = currentMillis;
+      etapeSetup++;
+    }
+    break;
+
+  case 13:
+    if (currentMillis - previousMillisSetup >= 5000)
+    {
+      jouerSon(2);
+      afficherStart();
+      previousMillisSetup = currentMillis;
+      etapeSetup++;
+    }
+    break;
+
+  case 14:
+    if (currentMillis - previousMillisSetup >= 2000)
+    {
+      digitalWrite(rel02, LOW);
+      setupTermine = true;
+      forcerMajEcran = true;        // Force le premier affichage
+      premierAffichageFait = false; // ← important
+      Mcmptr1 = 0;                  // ← Remise à zéro des points/crédits reçus
+      compteurCredits = 0;
+      // Serial.println("Setup non bloquant terminé !");  // Initialisation
+    }
+    sequenceFinaleSetup(currentMillis);
+    break;
+  default:
+    tft.println("Err > Setup etape inconnue");
+    break;
   }
 }
 
 // ************************************************************
 //*************************************************************
 
-void loop() {
+void loop()
+{
   unsigned long maintenant = millis();
 
   // Exécute le loop toutes les ----- ms max
-  if (maintenant - previousMillisLoop < intervalLoop) return;
+  if (maintenant - previousMillisLoop < intervalLoop)
+    return;
   previousMillisLoop = maintenant;
 
   // Setup non bloquant
-  if (!setupTermine) {
+  if (!setupTermine)
+  {
     setupNonBloquant();
-  } else {
+  }
+  else
+  {
 
     // Affichage initial
-    if (!premierAffichageFait) {
-      cpt();  // Affiche immédiatement cpt() une fois au début
+    if (!premierAffichageFait)
+    {
+      cpt(); // Affiche immédiatement cpt() une fois au début
       premierAffichageFait = true;
     }
 
@@ -985,7 +1027,8 @@ void loop() {
     pcf8574.write(0, HIGH);
 
     // Gestion du crédit
-    if (Mcmptr1 > 0 && !relaisEnCours && maintenant - dernierCreditEnvoye >= delaiEntreImpulsions) {
+    if (Mcmptr1 > 0 && !relaisEnCours && maintenant - dernierCreditEnvoye >= delaiEntreImpulsions)
+    {
       jouerSon(0);
       ajouterCredit();
       dernierCreditEnvoye = maintenant;
@@ -995,7 +1038,8 @@ void loop() {
       cmptrjrn++;
       totcmptr++;
 
-      if (Mcmptr1 == 0) jouerSon(5);
+      if (Mcmptr1 == 0)
+        jouerSon(5);
 
       writeToNVram();
       forcerMajEcran = true;
@@ -1007,49 +1051,59 @@ void loop() {
     bool b3 = digitalRead(BUTTON_3_PIN) == LOW;
 
     // Détermination du mode écran
-    if (b1) {
+    if (b1)
+    {
       modeEcran = MODE_BOUTON1;
-    } else if (b2) {
+    }
+    else if (b2)
+    {
       modeEcran = MODE_BOUTON2;
-    } else if (b3) {
+    }
+    else if (b3)
+    {
       modeEcran = MODE_BOUTON3;
     }
 
     // Si une pub est en cours
-    if (pubEnCours) {
-      lancerPublicite();  // Gère lui-même sa durée
+    if (pubEnCours)
+    {
+      lancerPublicite(); // Gère lui-même sa durée
     }
 
     static bool enVueSpeciale = false;
 
     // Gestion de l'affichage selon le mode
-    switch (modeEcran) {
-      case MODE_CPT:
-        if (!resetEnCours && (maintenant - dernierAffichageCpt >= intervalleAffichageCpt)) {
-          dernierAffichageCpt = maintenant;
-          cpt();
-        }
-        break;
+    switch (modeEcran)
+    {
+    case MODE_CPT:
+      if (!resetEnCours && (maintenant - dernierAffichageCpt >= intervalleAffichageCpt))
+      {
+        dernierAffichageCpt = maintenant;
+        cpt();
+      }
+      break;
 
-      case MODE_BOUTON1:
-        enVueSpeciale = true;
-        gererAppuiLongRemiseTotaux();
-        break;
+    case MODE_BOUTON1:
+      enVueSpeciale = true;
+      gererAppuiLongRemiseTotaux();
+      break;
 
-      case MODE_BOUTON2:
-        enVueSpeciale = true;
-        lancerPublicite();  // Encore ici, au cas où pubEnCours n’est pas encore vrai
-        break;
+    case MODE_BOUTON2:
+      enVueSpeciale = true;
+      lancerPublicite(); // Encore ici, au cas où pubEnCours n’est pas encore vrai
+      break;
 
-      case MODE_BOUTON3:
-        enVueSpeciale = true;
-        gererAppuiLongRemiseJournalier();
-        break;
+    case MODE_BOUTON3:
+      enVueSpeciale = true;
+      gererAppuiLongRemiseJournalier();
+      break;
     }
 
     // Retour au mode compteur si aucun bouton n’est appuyé
-    if (!b1 && !b2 && !b3) {
-      if (enVueSpeciale) {
+    if (!b1 && !b2 && !b3)
+    {
+      if (enVueSpeciale)
+      {
         enVueSpeciale = false;
         forcerMajEcran = true;
       }
@@ -1060,7 +1114,8 @@ void loop() {
     SendCmptr();
 
     // Forcer mise à jour de l’écran
-    if (forcerMajEcran && !resetEnCours) {
+    if (forcerMajEcran && !resetEnCours)
+    {
       cpt();
       forcerMajEcran = false;
     }
@@ -1069,21 +1124,23 @@ void loop() {
     gestionRelais();
   }
   // Débloque l’affichage après confirmation
-  if (resetEnCours && millis() - momentConfirmation >= 1500) {
+  if (resetEnCours && millis() - momentConfirmation >= 1500)
+  {
     resetEnCours = false;
     forcerMajEcran = true;
   }
 }
 
 // *********************************************************
-void afficherRemiseAZero() {
+void afficherRemiseAZero()
+{
   static bool bouton1Appuye = false;
   static bool confirmationEnCours = false;
   static unsigned long debutConfirmation = 0;
 
-  if (!confirmationEnCours) {
+  if (!confirmationEnCours)
+  {
     // Phase 1 : affichage de la demande de remise à zéro
-
 
     // Réinitialisation
     cmptrjrn = 0;
@@ -1094,14 +1151,13 @@ void afficherRemiseAZero() {
     dataSent.fs1 = 0;
     esp_now_send(broadcastAddress, (uint8_t *)&dataSent, sizeof(dataSent));
 
-    jouerSon(2);  // Feedback sonore
+    jouerSon(2); // Feedback sonore
 
     // Phase 2 : confirmation visuelle
 
     tft.fillScreen(ST77XX_GREEN);
     tft.setTextSize(2);
     tft.setTextColor(ST77XX_BLACK);
-
 
     tft.setCursor(20, 40);
     tft.println("Compteur");
@@ -1117,35 +1173,41 @@ void afficherRemiseAZero() {
 
     confirmationEnCours = true;
     debutConfirmation = millis();
-  } else {
+  }
+  else
+  {
     // Attend la fin de la confirmation
-    if (millis() - debutConfirmation >= 1500) {
+    if (millis() - debutConfirmation >= 1500)
+    {
       // Retour à l'état normal
       confirmationEnCours = false;
       resetEnCours = false;
       modeEcran = MODE_CPT;
       forcerMajEcran = true;
 
-      if (digitalRead(BUTTON_1_PIN) == HIGH) {
-        bouton1Appuye = false;  // Autorise un nouvel appui
+      if (digitalRead(BUTTON_1_PIN) == HIGH)
+      {
+        bouton1Appuye = false; // Autorise un nouvel appui
       }
     }
   }
 }
 
-void cpt() {
-  if (modeEcran != MODE_CPT) return;
+void cpt()
+{
+  if (modeEcran != MODE_CPT)
+    return;
 
   static bool etatPrecedent = !etatLed01;
-
 
   bool changementEtatConnexion = (etatLed01 != etatPrecedent);
 
   // Détecte changement des compteurs
   bool changementCompteurs =
-    (Mcmptr1 != prev_Mcmptr1 || cmptrjrn != prev_cmptrjrn || totcmptr != prev_totcmptr || compteurCredits != prev_compteurCredits);
+      (Mcmptr1 != prev_Mcmptr1 || cmptrjrn != prev_cmptrjrn || totcmptr != prev_totcmptr || compteurCredits != prev_compteurCredits);
 
-  if (changementEtatConnexion || changementCompteurs || forcerMajEcran) {
+  if (changementEtatConnexion || changementCompteurs || forcerMajEcran)
+  {
     tft.fillScreen(etatLed01 ? ST77XX_RED : ST77XX_BLUE);
     tft.setTextSize(1);
     tft.setCursor(5, 20);
@@ -1157,13 +1219,14 @@ void cpt() {
     tft.setTextSize(2);
 
     uint16_t bgColor = etatLed01 ? ST77XX_RED : ST77XX_BLUE;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++)
+    {
       tft.fillRect(20, 40 + (i * 20), 100, 20, bgColor);
     }
 
     tft.setCursor(1, 35);
     tft.print("   :");
-    tft.println(Mcmptr1);  
+    tft.println(Mcmptr1);
     tft.setCursor(1, 60);
     tft.print("Tep:");
     tft.println(cmptrjrn);
@@ -1171,9 +1234,9 @@ void cpt() {
     tft.print("Tot:");
     tft.println(totcmptr);
     tft.setCursor(1, 109);
-    tft.print("Cre:") ;
+    tft.print("Cre:");
     tft.println(compteurCredits);
-  
+
     // Mise à jour des états précédents
     etatPrecedent = etatLed01;
     prev_Mcmptr1 = Mcmptr1;
