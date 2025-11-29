@@ -1,3 +1,13 @@
+/**
+ * @file MockArduino.cpp
+ * @brief Implémentation de bouchons (mocks) Arduino/ESP pour les tests unitaires natifs.
+ *
+ * Ce fichier fournit des implémentations vides ou factices des fonctions matérielles
+ * (GPIO, WiFi, ESP-NOW) afin de permettre la compilation et l'exécution de la bibliothèque
+ * partagée dans un environnement natif (PC). Cela permet de tester la logique métier
+ * sans avoir besoin du matériel ESP32 réel.
+ */
+
 #include "MockArduino.h"
 
 #ifndef ARDUINO
