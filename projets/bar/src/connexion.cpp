@@ -1,4 +1,4 @@
- #include "module_connexion.h"
+ #include "connexion.h"
  #include <Arduino.h>
 // Définition réelle des variables (une seule fois ici)
 bool isConnected = false;

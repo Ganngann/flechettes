@@ -1,6 +1,6 @@
- #include "setup_module.h"
-#include "module_affichage.h"
-#include "module_son.h"
+ #include "setup.h"
+#include "affichage.h"
+#include "son.h"
 
 void initialiserModules() {
   tft.initR(INITR_BLACKTAB);

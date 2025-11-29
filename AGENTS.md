@@ -1,42 +1,34 @@
 # Guide de Configuration pour le Développement (PlatformIO)
 
-Ce projet utilise **PlatformIO** pour la gestion des dépendances et la compilation, assurant que tous les développeurs utilisent les mêmes versions de bibliothèques.
+Ce projet utilise **PlatformIO** pour la gestion des dépendances et la compilation.
 
-## Prérequis
+## Structure du Projet (Restructurée)
 
-1.  **VS Code** : Télécharger et installer [Visual Studio Code](https://code.visualstudio.com/).
-2.  **PlatformIO** : Installer l'extension "PlatformIO IDE" dans VS Code.
+Le projet est organisé sous le dossier `projets/` :
 
-## Structure du Projet
+*   `projets/bar/` : Contrôleur du bar (anciennement `cmptr_bar`).
+*   `projets/flechettes/` : Jeu de fléchettes (anciennement `Flechettes`).
+*   `lib/commun/` : Bibliothèque partagée (code commun).
 
-Le projet contient deux modules principaux, chacun configuré comme un projet PlatformIO indépendant :
-
-*   `bar/cmptr_bar/` : Contrôleur du bar.
-*   `jeux/Flechettes/` : Récepteur du jeu de fléchettes.
+Chaque projet suit la structure standard PlatformIO :
+*   `src/` : Code source (`.cpp`).
+*   `include/` : En-têtes (`.h`).
 
 ## Installation et Lancement
 
-Pour travailler sur un module (exemple : `bar/cmptr_bar`) :
+Pour travailler sur un module (exemple : `projets/bar`) :
 
 1.  Ouvrez VS Code.
-2.  Faites **File > Open Folder...** et sélectionnez le dossier racine du module (ex: `bar/cmptr_bar/`).
-    *   *Note : Vous pouvez aussi ouvrir le dossier racine du dépôt (`/`), mais PlatformIO détectera mieux les projets si vous ouvrez les dossiers spécifiques ou si vous ajoutez les dossiers au workspace.*
-3.  PlatformIO va automatiquement télécharger les bibliothèques et outils nécessaires (définis dans `platformio.ini`).
+2.  Ouvrez le dossier racine du dépôt ou le dossier spécifique du projet (`projets/bar`).
+3.  PlatformIO détectera le projet.
 
-## Commandes Utiles
+## Nomenclature
 
-*   **Compiler** : Cliquez sur l'icône "Check" (✓) dans la barre d'état PlatformIO (en bas) ou exécutez `pio run`.
-*   **Téléverser** : Cliquez sur l'icône "Flèche" (→) ou exécutez `pio run --target upload`.
-*   **Moniteur Série** : Cliquez sur l'icône "Prise" ou exécutez `pio device monitor`.
+*   Fichiers en *snake_case* (`son.cpp`, `affichage.cpp`).
+*   Point d'entrée : `main.cpp`.
+*   Configuration : `config.h`.
 
-## Gestion des Bibliothèques
+## Commandes
 
-Les bibliothèques sont listées dans le fichier `platformio.ini` de chaque module sous `lib_deps`.
-Si vous devez ajouter une bibliothèque, ajoutez-la dans ce fichier pour qu'elle soit partagée avec les autres développeurs.
-
-Exemple :
-```ini
-lib_deps =
-    adafruit/Adafruit GFX Library @ ^1.11.9
-    ...
-```
+*   **Compiler** : `pio run` (depuis le dossier du projet).
+*   **Téléverser** : `pio run --target upload`.
