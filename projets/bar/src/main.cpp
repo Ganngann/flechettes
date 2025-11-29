@@ -242,7 +242,7 @@ esp_now_peer_info_t peerInfo;
 // ***************************************************************************
 
 // === CALLBACK : réception ESP‑NOW ===
-void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *incomingData, int len) {
+void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&dataRcvr, incomingData, sizeof(dataRcvr));
 
   lastReceivedTime = millis();  // ✅ mise à jour pour le timeout
@@ -251,8 +251,8 @@ void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *incomingData, in
   // Affichage du MAC source
   char macStr[18];
   snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-           info->src_addr[0], info->src_addr[1], info->src_addr[2],
-           info->src_addr[3], info->src_addr[4], info->src_addr[5]);
+           mac_addr[0], mac_addr[1], mac_addr[2],
+           mac_addr[3], mac_addr[4], mac_addr[5]);
   //Serial.println(macStr);
 
   // Mettre à jour les données reçues pour affichage
@@ -587,10 +587,11 @@ void gererEtatsLEDs() {
 
 
 
-#endif TYPE_CPU == 3
+#endif // TYPE_CPU == 3
 //*************************************************************************
 
 
+void setupNonBloquant();
 
 void setup() {
   setupNonBloquant();  // Appel initial (étape 0)

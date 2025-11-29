@@ -288,7 +288,7 @@ typedef struct struct_message {
 
 struct_message dataSent, dataRcvr;
 
-void OnDataRecv(const esp_now_recv_info_t *info, const uint8_t *incomingData, int len) {
+void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&dataRcvr, incomingData, sizeof(dataRcvr));
   Mfp1 = 0;
 
@@ -336,6 +336,8 @@ void SendCmptr(void) {
 }
 
 //********************************************************************************
+
+void declencherImpulsionRelais();
 
 void ajouterCredit() {
   compteurCredits++;
@@ -586,6 +588,8 @@ const unsigned long DELAI_RELAIS_OFF   = 1800;
 const unsigned long DELAI_START_SCREEN = 5000;
 const unsigned long DELAI_FIN_SETUP    = 2000;
 const unsigned long intervalLoop       = 100;  // ralentit à ~100 fois/sec
+
+void setupNonBloquant();
 
 void setup() {
   setupNonBloquant();
