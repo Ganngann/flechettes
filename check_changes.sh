@@ -14,23 +14,26 @@ check_project() {
     echo -e "${GREEN}Checking project: $project_dir${NC}"
     cd $project_dir
 
-    # Run Native Tests
-    echo "Running unit tests (native)..."
-    if pio test -e native; then
-        echo -e "${GREEN}Tests Passed.${NC}"
+    # Run Native Tests if environment exists
+    if grep -q "\[env:native\]" platformio.ini; then
+        echo "Running unit tests (native)..."
+        if pio test -e native; then
+            echo -e "${GREEN}Tests Passed.${NC}"
+        else
+            echo -e "${RED}Tests Failed in $project_dir${NC}"
+            exit 1
+        fi
     else
-        echo -e "${RED}Tests Failed in $project_dir${NC}"
-        exit 1
+        echo "Native environment not found, skipping unit tests."
     fi
 
-    # Verify Compilation (optional but recommended)
+    # Verify Compilation (esp32dev)
     echo "Verifying compilation (esp32dev)..."
-    # We use -s to suppress output unless there is an error, and just check exit code
     if pio run -e esp32dev > /dev/null; then
         echo -e "${GREEN}Compilation Successful.${NC}"
     else
         echo -e "${RED}Compilation Failed in $project_dir${NC}"
-        # Print the last few lines of log if feasible, or just fail
+        # Re-run to show error
         pio run -e esp32dev
         exit 1
     fi
