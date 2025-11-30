@@ -9,8 +9,10 @@
 
  
 // adresse jeux
-//uint8_t broadcastAddress[] = { 0x40, 0x22, 0xd8, 0xf0, 0xde, 0xac }; // Adresse MAC du peer (ESP-NOW Jeu)
-uint8_t broadcastAddress[] = { 0x48, 0xE7, 0x29, 0xB2, 0xE5, 0xFC }; // Adresse MAC du peer (ESP-NOW Jeu)
+// uint8_t broadcastAddress[] = { 0x40, 0x22, 0xd8, 0xf0, 0xde, 0xac }; // Adresse MAC du peer (ESP-NOW Jeu)
+// uint8_t broadcastAddress[] = { 0x48, 0xE7, 0x29, 0xB2, 0xE5, 0xFC }; // Adresse MAC du peer (ESP-NOW Jeu)
+uint8_t broadcastAddress[] = { 0x48, 0xE7, 0x29, 0x94, 0xFD, 0xBC }; // Adresse MAC du peer (ESP-NOW Jeu)
+
 
 // Infos version
 const char* version   = "31/10/2025";
