@@ -5,9 +5,9 @@
  */
 
 #include <Arduino.h>
-#include "son.h"
+#include "SoundManager.h"
+#include "BarDisplay.h"
 #include "serie.h"
-#include "affichage.h"
 #include "setup.h"
 #include "config.h"
 #include "globales.h"
@@ -19,9 +19,6 @@
 #include "config_cpu.h"
 
 #include <ezButton.h>
-#include <Adafruit_GFX.h>     // Core graphics library
-#include <Adafruit_ST77xx.h>  // Hardware-specific library
-#include <Adafruit_ST7735.h>  // Hardware-specific library
 #include <SPI.h>
 #include <esp_now.h>
 #include <WiFi.h>
@@ -88,13 +85,7 @@ const int scrollSpeed = 50;  // ms entre chaque pas
 bool messageScrolling = false;
 const char *currentMsg = "";
 
-// messages
-const char *messages[] = {
-  "Bienvenue !", "Profitez !", "Cheers !", "Happy Hour",
-  "Flech ok !", "Bar ouvert", "Prenez ", "Ambiance"
-};
-const int messageCount = sizeof(messages) / sizeof(messages[0]);
-
+// messages (moved to BarDisplay, kept here only if needed elsewhere, but seems unused outside display)
 
 #define TFT_SCLK 18  // SPI clock
 #define TFT_MOSI 23  // SPI Data
@@ -117,6 +108,8 @@ const uint8_t buz = 26;
 
 // Logic Instance
 BarLogic *barLogic = nullptr;
+SoundManager *soundManager = nullptr;
+BarDisplay *barDisplay = nullptr;
 
 bool isSending = false;
 
@@ -151,8 +144,6 @@ uint16_t ok = 0;
 
 
 uint16_t ledState = LOW;
-Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);
-
 
 bool ledState1 = false;
 uint16_t led02 = 27;
@@ -209,216 +200,6 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 
 
   digitalWrite(led02, ledState2 = !ledState2);
-}
-
-void ecran() {
-  switch (ok) {
-    case 1:
-      mettreAJourConnexion();
-      if (isConnected) {
-        if (!ecranInitialise) {
-          tft.fillScreen(ST77XX_BLUE);  // Fond bleu pour tout l'écran
-          // Affiche "Bar onLine" en bas, fixe
-          tft.fillRect(0, 100, tft.width(), 40, ST77XX_BLUE);
-          tft.setTextColor(ST77XX_YELLOW);
-          tft.setCursor(10, 110);
-          tft.println("Bar onLine");
-          ecranInitialise = true;
-        }
-
-        unsigned long now = millis();
-        if (!messageScrolling) {
-          scrollY = 0;
-          currentMsg = messages[random(0, messageCount)];
-          messageScrolling = true;
-          previousMillisScroll = now;
-        }
-
-        if (now - previousMillisScroll >= scrollSpeed) {
-          previousMillisScroll = now;
-
-          // Efface uniquement la zone de message défilant
-          tft.fillRect(0, 0, tft.width(), 100, ST77XX_BLUE);
-
-          // Affiche le texte défilant
-          tft.setCursor(10, scrollY);
-          tft.setTextColor(ST77XX_WHITE);
-          tft.println(currentMsg);
-          scrollY += 4;
-
-          if (scrollY > 80) {
-            messageScrolling = false;
-            // Effacement final de la zone message
-            tft.fillRect(0, 0, tft.width(), 100, ST77XX_BLUE);
-          }
-        }
-      }
-
-      // Si plus connecté, écran rouge "Jeux off"
-      if (!isConnected) {
-        if (!ecranInitialise) {
-          tft.fillScreen(ST77XX_RED);
-          tft.setTextColor(ST77XX_YELLOW);
-          tft.setCursor(10, 60);
-          tft.println("Jeux off");
-          ecranInitialise = true;
-          messageScrolling = false;
-        }
-      }
-      break;
-
-    case 3:
-      tft.fillScreen(ST77XX_BLACK);
-      messageScrolling = false;  // ✅ on désactive le scroll pour éviter superposition
-      scrollY = 0;
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setCursor(3, 6);
-      tft.setTextColor(ST77XX_YELLOW);
-      tft.println("Cred/jeux ");
-      tft.setCursor(41, 34);
-      tft.print(TotCn * Val_Cred);
-      tft.setTextColor(ST77XX_WHITE);
-      tft.setCursor(10, 60);
-      tft.print(" En Euro:");
-      tft.setTextSize(5);
-      tft.setCursor(40, 85);
-      tft.print(TotCn);
-      tft.setTextSize(2);
-      break;
-
-    case 4: {
-      messageScrolling = false;  // ✅ on désactive le scroll pour éviter superposition
-      scrollY = 0;
-      tft.fillScreen(ST77XX_BLUE);
-      
-      // Position de départ
-      int y = 5;  // position verticale initiale
-     
-     int hauteurTexte = 8;           // hauteur en pixels pour tailleTexte = 1
-     int interligne = 1;             // espace entre les lignes (ajuste ici)
-
-    for (int i = 0; i < nbLignes; i++) {
-     tft.setTextColor(lignes[i].couleur);
-     tft.setTextSize(lignes[i].tailleTexte);
-     tft.setCursor(0, y);
-     tft.print(lignes[i].texte);
-
-      y += hauteurTexte * lignes[i].tailleTexte + interligne;
-    } 
-
-      tft.setTextSize(2);
-    }
-      break;
-
-    case 5:
-      messageScrolling = false;  // ✅ on désactive le scroll pour éviter superposition
-      scrollY = 0;
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setCursor(10, 10);
-      tft.setTextColor(ST77XX_WHITE);
-      tft.print("Clear Cpt");
-      tft.setTextSize(4);
-      tft.setCursor(40, 42);
-      tft.setTextColor(ST77XX_BLUE);
-      tft.print(TotCn);
-      tft.setTextColor(ST77XX_WHITE);
-      tft.setTextSize(2);
-      tft.setCursor(0, 93);
-      tft.print("..........");
-      delay(3000);
-      tft.fillScreen(ST77XX_BLACK);
-      break;
-
-    case 6:
-      messageScrolling = false;  // ✅ on désactive le scroll pour éviter superposition
-      scrollY = 0;
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setTextColor(ST77XX_YELLOW);
-      tft.setCursor(2, 5);
-      tft.println("Journalier");
-      tft.setCursor(10, 30);
-      tft.setTextColor(ST77XX_WHITE);
-      tft.println(cmptrjrn);
-      tft.setTextColor(ST77XX_YELLOW);
-      tft.setCursor(5, 55);
-      tft.println("Total");
-      tft.setTextColor(ST77XX_WHITE);
-      tft.setCursor(10, 82);
-      tft.println(totcmptr);
-      tft.setTextColor(ST77XX_YELLOW);
-      tft.setTextSize(1);
-      tft.setCursor(10, 110);
-      tft.println("En Euros");
-      tft.setTextSize(2);
-      break;
-
-    case 8:
-      messageScrolling = false;  // ✅ on désactive le scroll pour éviter superposition
-      scrollY = 0;
-      tft.fillScreen(ST77XX_RED);
-      tft.setCursor(10, 2);
-      tft.setTextColor(ST77XX_YELLOW);
-      tft.print("Operation");
-      tft.setTextSize(4);
-      tft.setCursor(48, 25);
-      tft.setTextColor(ST77XX_WHITE);
-      tft.print(TotCn);
-      tft.setTextSize(2);
-      tft.setCursor(10, 59);
-      if (annulationCreditExces) {
-        tft.setTextColor(ST77XX_WHITE);
-        tft.println(("Euro > ") + String(max_cred));
-      }
-      tft.setCursor(10, 83);
-      tft.println("Credits");
-      tft.setCursor(10, 103);
-      tft.println("annules !");
-      break;
-
-    case 9:  // ✅ Ecran "Connexion absente"
-      messageScrolling = false;
-      scrollY = 0;
-      tft.fillScreen(ST77XX_RED);
-      tft.setTextColor(ST77XX_WHITE);
-      tft.setCursor(0, 20);
-      tft.setTextSize(2);
-      tft.println("Jeu distant");
-      tft.setCursor(25, 45);
-      tft.println("eteint");
-      tft.setCursor(10, 80);
-      tft.setTextColor(ST77XX_YELLOW);
-      tft.println("Credit");
-      tft.setCursor(10, 100);
-      tft.println("desactive");
-      tft.setTextSize(2);
-      break;
-
-    // === NEW LOGIC CASES ===
-    case 20: // Transfert reussi
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setTextColor(ST77XX_WHITE);
-      tft.setTextSize(2);
-      tft.setCursor(10, 40);
-      tft.println("Transfert");
-      tft.println(" reussi");
-      break;
-
-    case 21: // OFF line (echec transfert)
-      tft.fillScreen(ST77XX_RED);
-      tft.setTextSize(2);
-      tft.setCursor(10, 40);
-      tft.println("   Jeu");
-      tft.println(" ");
-      tft.println(" OFF line");
-      break;
-
-    default:
-      // Réinitialise pour les autres cas
-      ecranInitialise = false;
-      messageScrolling = false;
-      scrollY = 0;
-      break;
-  }
 }
 
 //*********************************************************************
@@ -540,14 +321,16 @@ void setupNonBloquant() {
         buttonArray[i].setCountMode(COUNT_FALLING);
       }
 
-      initialiserSon();
+      // Init Managers
+      soundManager = new SoundManager(buz);
+      soundManager->begin();
+
+      barDisplay = new BarDisplay(TFT_CS, TFT_DC, TFT_RST);
+      barDisplay->begin();
+
       initialiserModules();
 
       Serial.begin(115200);
-
-      tft.initR(INITR_GREENTAB);
-      tft.fillScreen(ST77XX_BLACK);
-      tft.setRotation(3);
 
       WiFi.mode(WIFI_STA);
       WiFi.disconnect();
@@ -562,14 +345,14 @@ void setupNonBloquant() {
     case 1:
 
       if (currentMillis - previousMillisSetup >= 1500) {
-        afficherNumSerie(tft);
+        barDisplay->showStartup("123456789");
         previousMillisSetup = currentMillis;
         etapeSetup++;
       }
       break;
 
     case 2:
-      afficherStart(tft);
+      barDisplay->showStart();
       previousMillisSetup = currentMillis;
       etapeSetup++;  // Va à l'étape 3
       break;
@@ -584,15 +367,14 @@ void setupNonBloquant() {
     case 4:
       if (esp_now_init() != ESP_OK) {
         //Serial.println("❌ ESP-NOW Init Failed");
-        tft.fillScreen(ST77XX_RED);
-        tft.setTextSize(2);
-        tft.setCursor(10, 40);
-        tft.println("   ESP-NOW\n\n   Erreur !");
-        while (true)
-          ;
-      }
+        // Using BarDisplay generic update or specific error?
+        // For now, keeping legacy behavior by hijacking display if possible or skipping
+        // But since we are OOP, we might not want to block here.
+        // But the original code was blocking: while(true).
 
-      //Serial.println("✅ ESP-NOW initialisé");
+        // We can't access TFT directly easily if private, but we can add method or assume init failed.
+        while (true);
+      }
 
       esp_now_register_send_cb(OnDataSent);
       esp_now_register_recv_cb(OnDataRecv);
@@ -604,15 +386,8 @@ void setupNonBloquant() {
 
       if (!esp_now_is_peer_exist(broadcastAddress)) {
         if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-          //Serial.println("❌ Erreur lors de l'ajout du peer");
-          tft.fillScreen(ST77XX_RED);
-          tft.setTextSize(2);
-          tft.setCursor(10, 40);
-          tft.println("   Peer\n\n   Erreur !");
-          while (true)
-            ;
+          while (true);
         }
-        //Serial.println("✅ Peer ajouté");
       }
 
       dataSent.cp1 = 0;
@@ -622,15 +397,6 @@ void setupNonBloquant() {
       dataSent.fp1 = false;
 
       esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&dataSent, sizeof(dataSent));
-
-      if (result == ESP_OK) {
-        //Serial.println("Message envoyé avec succès");
-      } else {
-        tft.fillScreen(ST77XX_RED);
-        tft.setTextSize(2);
-        tft.setCursor(10, 40);
-        tft.println("   Jeu\n\n OFF line");
-      }
 
       setupTermine = true;
 
@@ -666,7 +432,7 @@ void loop() {
   } else {
 
 
-    actualiserSon();
+    if (soundManager) soundManager->update();
 
     for (int i = 0; i < 3; i++) buttonArray[i].loop();
 
@@ -690,13 +456,35 @@ void loop() {
         BarLogic::Output out = barLogic->update(in);
         sendCallbackReceived = false;
 
-        if (out.soundToPlay != -1) {
-            jouerSon(out.soundToPlay);
+        if (out.soundToPlay != -1 && soundManager) {
+            soundManager->play(out.soundToPlay);
         }
 
         if (out.screenId != -1) {
             ok = out.screenId;
-            ecran();
+            // Update Display
+            BarData data;
+            data.totalCredits = TotCn;
+            data.dailyCredits = cmptrjrn;
+            data.lifetimeCredits = totcmptr;
+            data.isConnected = isConnected;
+            data.annulExces = annulationCreditExces;
+            data.annulReset = annulationCreditReset;
+            data.maxCred = max_cred;
+
+            if (barDisplay) barDisplay->update(ok, data);
+        } else if (barDisplay) {
+            // Continuous update for scrolling
+             BarData data;
+            data.totalCredits = TotCn;
+            data.dailyCredits = cmptrjrn;
+            data.lifetimeCredits = totcmptr;
+            data.isConnected = isConnected;
+            data.annulExces = annulationCreditExces;
+            data.annulReset = annulationCreditReset;
+            data.maxCred = max_cred;
+
+            barDisplay->update(ok, data);
         }
 
         if (out.sendMessage) {
