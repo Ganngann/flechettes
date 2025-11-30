@@ -11,7 +11,11 @@
 // adresse jeux
 // uint8_t broadcastAddress[] = { 0x40, 0x22, 0xd8, 0xf0, 0xde, 0xac }; // Adresse MAC du peer (ESP-NOW Jeu)
 // uint8_t broadcastAddress[] = { 0x48, 0xE7, 0x29, 0xB2, 0xE5, 0xFC }; // Adresse MAC du peer (ESP-NOW Jeu)
+#ifdef PEER_MAC_ADDRESS
+uint8_t broadcastAddress[] = PEER_MAC_ADDRESS;
+#else
 uint8_t broadcastAddress[] = { 0x48, 0xE7, 0x29, 0x94, 0xFD, 0xBC }; // Adresse MAC du peer (ESP-NOW Jeu)
+#endif
 
 
 // Infos version

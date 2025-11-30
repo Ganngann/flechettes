@@ -8,7 +8,11 @@ const char* num_soft  = "Vers:10.00";
 
 //uint8_t broadcastAddress[] = {   0x94, 0x54, 0xc5, 0x62, 0xf1, 0x24 };  // peer bar
 // uint8_t broadcastAddress[] = { 0x78,0x1C,0x3C,0xA9,0x1A,0x74 };  // peer bar
+#ifdef PEER_MAC_ADDRESS
+uint8_t broadcastAddress[] = PEER_MAC_ADDRESS;
+#else
 uint8_t broadcastAddress[] = { 0x48,0xE7,0x29,0xAC,0x92,0xF0 };  // peer bar
+#endif
 
 
 
