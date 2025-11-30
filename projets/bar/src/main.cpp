@@ -4,8 +4,6 @@
  voir version.cpp
  */
 
-
-
 #include <Arduino.h>
 #include "son.h"
 #include "serie.h"
@@ -15,6 +13,8 @@
 #include "globales.h"
 #include "connexion.h"
 #include <utils.h>
+#include "SharedData.h"
+#include "BarLogic.h"
 
 #include "config_cpu.h"
 
@@ -32,11 +32,6 @@
 
 #include <DS1307new.h>
 #include <I2C_eeprom.h>
-//#include <DS1307new.h>
-//#include <DS1307Lib.h>
-//Adresse I2C de la DS1307
-//#define DS1307_ID 0x68
-//RTC_DS1307 rtc;
 
 #include <esp_idf_version.h>
 
@@ -61,11 +56,13 @@ const unsigned long CLIGNO_DISCO_INTERVAL = 500;
 #endif
 
 bool SendStts;
+bool sendCallbackReceived = false;
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 void OnDataSent(const wifi_tx_info_t *tx_info, esp_now_send_status_t status) {
   SendStts = (status == ESP_NOW_SEND_SUCCESS);
   isConnected = SendStts;
+  sendCallbackReceived = true;
 
   digitalWrite(led01, HIGH);
   led01On = true;
@@ -75,6 +72,7 @@ void OnDataSent(const wifi_tx_info_t *tx_info, esp_now_send_status_t status) {
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   SendStts = (status == ESP_NOW_SEND_SUCCESS);
   isConnected = SendStts;
+  sendCallbackReceived = true;
 
   digitalWrite(led01, HIGH);
   led01On = true;
@@ -105,75 +103,33 @@ const int messageCount = sizeof(messages) / sizeof(messages[0]);
 #define TFT_RST 13
 #define TFT_DC 4  // register select (stands for Data Control perhaps!)
 
-// **********************************JM
-//uint8_t broadcastAddress[] = { 0x48, 0xE7, 0x29, 0x96, 0x98, 0xC4 };
-// **********************************TM
-
 unsigned long lastPressTime = 0;    // Temps de la dernière pression
 unsigned long debounceDelay = 250;  // Délai de rebond (en milliseconde) pour eviter de détecté plusieurs fois une pression trop rapide
 
 const uint8_t BUTTON_CRE = 2;
 const uint8_t BUTTON_NUM = 3;
 
-
-
 const uint8_t BUTTON_1_PIN = Val_Pin_Env;
 const uint8_t BUTTON_2_PIN = Val_Pin_Cre;
 const uint8_t BUTTON_3_PIN = Val_Pin_Ann;
 
-
-
 const uint8_t buz = 26;
 
-typedef struct struct_message {
-  uint16_t cp1;  // incrément compteur nbr de points envoyé
-  uint16_t cp2;  // compteur journalier
-  uint16_t cp3;  // compteur total
-  bool fp1;
-  bool fs1;
-} struct_message;
-
-
-
-enum State {
-  ETAT_INIT,
-  ETAT_ATTENTE,
-  ETAT_AJOUT_CREDIT,
-  ETAT_ANNULATION,
-  ETAT_ENVOI_CREDIT,
-  ETAT_RESULTAT_ENVOI,
-  ETAT_INFO_ZERO,
-  ETAT_TIMEOUT_ECRAN,
-  ETAT_PUB,        // ✅ ajouté
-  ETAT_COMPTEURS,  // ✅ ajouté
-  ETAT_CREDIT,
-  ETAT_JEU,  // ✅ ajouté  nouvel état pour gérer affichage crédit
-};
-
-State etatActuel = ETAT_INIT;
-
-bool b1_state, b2_state, b3_state;
-bool b1_lastState = false, b2_lastState = false, b3_lastState = false;
-unsigned long lastB1Millis = 0, lastB2Millis = 0, lastB3Millis = 0;
-const unsigned long debounceB1 = 300, debounceB2 = 50, debounceB3 = 300;
+// Logic Instance
+BarLogic *barLogic = nullptr;
 
 bool isSending = false;
-unsigned long sendStartTime = 0;
-const unsigned long SEND_TIMEOUT = 500;
 
 bool previousConnectionState = false;
-static uint16_t TotCn_prev = 0;
 
 struct_message dataSent;
 struct_message dataRcvr;
-
 
 uint16_t cmptrjrn;
 uint16_t totcmptr;
 
 uint16_t EnvTot;
 uint16_t Read_EnvTot;
-
 
 uint16_t CptTot_dpt = 0;
 uint16_t TpsCred_dep = 0;
@@ -186,8 +142,6 @@ bool annulationCreditExces = false;
 bool annulationCreditReset = false;  // ✅ Déclaration ajoutée
 
 uint8_t lastOk = 255;  // impossible au démarrage, donc forcera un affichage au début
-
-
 
 uint8_t valbtp[3] = { 0, 0, 0 };
 uint16_t serv = 0;
@@ -207,8 +161,6 @@ uint16_t sttcpt = 0;
 uint16_t ticcpt = 0;
 uint16_t Cpt = 0;
 uint16_t lastScreenUpdate = 0;
-unsigned long screenHoldUntil = 0;  // pour geler l’affichage après un écran temporaire
-
 
 static uint16_t previousTotCn = 0;
 unsigned long lastCreditTime = 0;
@@ -233,27 +185,20 @@ ezButton buttonArray[] = {
   ezButton(BUTTON_3_PIN),
 };
 
-
-
 // Variable to add info about peer
 esp_now_peer_info_t peerInfo;
-//****************************************************************************
-//void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
-// ***************************************************************************
 
 // === CALLBACK : réception ESP‑NOW ===
 void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&dataRcvr, incomingData, sizeof(dataRcvr));
 
   lastReceivedTime = millis();  // ✅ mise à jour pour le timeout
-  //Serial.println("📩 Donnée reçue !");
 
   // Affichage du MAC source
   char macStr[18];
   snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
            mac_addr[0], mac_addr[1], mac_addr[2],
            mac_addr[3], mac_addr[4], mac_addr[5]);
-  //Serial.println(macStr);
 
   // Mettre à jour les données reçues pour affichage
   Rcmptr1 = dataRcvr.cp1;
@@ -264,46 +209,11 @@ void OnDataRecv(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
 
 
   digitalWrite(led02, ledState2 = !ledState2);
-
-
-  //Serial.print("📡 Paquet reçu de : ");
 }
-
-
-
-/*
-//        ✅ 1. Correction de OnDataSent() :
-// === CALLBACK : envoi ESP‑NOW ===
-void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  SendStts = (status == ESP_NOW_SEND_SUCCESS);
-  isConnected = SendStts;
-
-  //digitalWrite(led01, ledState1 = !ledState1);
-
-  
-  digitalWrite(led01, HIGH);
-  led01On = true;
-  led01StartTime = millis();
-  
-
-
-  //Serial.println(SendStts ? "✅ Send OK" : "❌ Send FAIL");
-
-}
-*/
-
- 
-
 
 void ecran() {
   switch (ok) {
     case 1:
-      /*
-      //Serial.print("etat connection 1 > : ");
-      //Serial.println(isConnected);
-      //Serial.print("ecranInitialise 1 > : ");
-      //Serial.println(ecranInitialise);
-      */
       mettreAJourConnexion();
       if (isConnected) {
         if (!ecranInitialise) {
@@ -380,8 +290,6 @@ void ecran() {
       messageScrolling = false;  // ✅ on désactive le scroll pour éviter superposition
       scrollY = 0;
       tft.fillScreen(ST77XX_BLUE);
-      //tft.fillScreen(ST77XX_WHITE);  // Nettoie l’écran
-      //tft.setCursor(0, 10);   
       
       // Position de départ
       int y = 5;  // position verticale initiale
@@ -397,8 +305,6 @@ void ecran() {
 
       y += hauteurTexte * lignes[i].tailleTexte + interligne;
     } 
-
-
 
       tft.setTextSize(2);
     }
@@ -487,8 +393,24 @@ void ecran() {
       tft.setTextSize(2);
       break;
 
+    // === NEW LOGIC CASES ===
+    case 20: // Transfert reussi
+      tft.fillScreen(ST77XX_BLACK);
+      tft.setTextColor(ST77XX_WHITE);
+      tft.setTextSize(2);
+      tft.setCursor(10, 40);
+      tft.println("Transfert");
+      tft.println(" reussi");
+      break;
 
-
+    case 21: // OFF line (echec transfert)
+      tft.fillScreen(ST77XX_RED);
+      tft.setTextSize(2);
+      tft.setCursor(10, 40);
+      tft.println("   Jeu");
+      tft.println(" ");
+      tft.println(" OFF line");
+      break;
 
     default:
       // Réinitialise pour les autres cas
@@ -584,8 +506,6 @@ void gererEtatsLEDs() {
   digitalWrite(LdRed1, LOW);                        // 🔴 éteinte
   digitalWrite(LdBlu1, (TotCn == 0) ? HIGH : LOW);  // 🔵 allumée si pas de crédit
 }
-
-
 
 #endif // TYPE_CPU == 3
 //*************************************************************************
@@ -702,8 +622,6 @@ void setupNonBloquant() {
       dataSent.fp1 = false;
 
       esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&dataSent, sizeof(dataSent));
-      //Serial.print("📤 Envoi initial : ");
-      //Serial.println(result == ESP_OK ? "OK" : "Erreur");
 
       if (result == ESP_OK) {
         //Serial.println("Message envoyé avec succès");
@@ -712,14 +630,19 @@ void setupNonBloquant() {
         tft.setTextSize(2);
         tft.setCursor(10, 40);
         tft.println("   Jeu\n\n OFF line");
-        //Serial.print("Erreur d'envoi : ");
-        //Serial.println(result);
       }
 
       setupTermine = true;
-      //Serial.println("✅ Setup terminé, passage à l'état INIT");
 
-      etatActuel = ETAT_INIT;
+      // Init logic
+      if (!barLogic) {
+         BarLogic::Config cfg;
+         cfg.valTotCn = Val_TotCn;
+         cfg.maxCred = max_cred;
+         cfg.sendTimeout = 500;
+         barLogic = new BarLogic(cfg);
+      }
+
       messageScrolling = false;
       scrollY = -20;
       break;
@@ -731,7 +654,6 @@ unsigned long previousLoopMillis = 0;
 const unsigned long loopInterval = 100;  // Intervalle de 100ms
 
 void loop() {
-  // 🔄 MODIF ICI : Capturer millis() une seule fois pour cohérence
   unsigned long currentMillis = millis();
 
   // Tempo non bloquante (remplace delay(100))
@@ -750,208 +672,57 @@ void loop() {
 
     mettreAJourConnexion();
 
-// ***************************************************************
 #if TYPE_CPU == 3
     gererLEDTransfert(SendStts);  // Lance le clignotement LED en priorité
     gererEtatsLEDs();             // Gère l'état des LED si pas de clignotement
 #endif
-    // ***************************************************************
 
-    static bool etatPrecedent = false;
-    if (isConnected != etatPrecedent) {
-      etatPrecedent = isConnected;
+    if (barLogic) {
+        BarLogic::Input in;
+        in.currentMillis = currentMillis;
+        in.btn1Down = (digitalRead(BUTTON_1_PIN) == LOW);
+        in.btn2Down = (digitalRead(BUTTON_2_PIN) == LOW);
+        in.btn3Down = (digitalRead(BUTTON_3_PIN) == LOW);
+        in.isConnected = isConnected;
+        in.sendSuccess = SendStts;
+        in.sendDone = sendCallbackReceived;
 
-      if (!isConnected && TotCn > 0) {
-        TotCn = 0;
-        annulationCreditExces = false;
+        BarLogic::Output out = barLogic->update(in);
+        sendCallbackReceived = false;
 
-        ok = 8;
-        jouerSon(6);
-        ecran();
-        etatActuel = ETAT_TIMEOUT_ECRAN;
-        ecranInitialise = false;
-        screenHoldUntil = currentMillis + 4000;  // 🔄 MODIF ICI
-      }
-    }
-
-    if (isConnected != previousConnectionState) {
-      previousConnectionState = isConnected;
-      if (etatActuel != ETAT_TIMEOUT_ECRAN) {
-        ok = 1;
-        ecranInitialise = false;
-        ecran();
-      }
-    }
-
-    b1_state = digitalRead(BUTTON_1_PIN) == LOW;
-    b2_state = digitalRead(BUTTON_2_PIN) == LOW;  // credit
-    b3_state = digitalRead(BUTTON_3_PIN) == LOW;
-
-    static bool b2Enfonce = false;
-    if (b2_state && !b2_lastState && currentMillis - lastB2Millis > debounceB2) {
-      b2Enfonce = true;
-      lastB2Millis = currentMillis;
-    }
-
-    if (!b2_state && b2_lastState && b2Enfonce && currentMillis - lastB2Millis > debounceB2) {
-      b2Enfonce = false;
-      lastB2Millis = currentMillis;
-
-      if (etatActuel == ETAT_ATTENTE) {
-        if (!isConnected) {
-          jouerSon(6);
-          ok = 9;
-          ecran();
-          screenHoldUntil = currentMillis + 3000;  // 🔄 MODIF ICI
-          etatActuel = ETAT_TIMEOUT_ECRAN;
-        } else {
-          TotCn += Val_TotCn;
-          jouerSon(1);
-          ok = 3;
-          ecran();
-          screenHoldUntil = currentMillis + 100;  // 🔄 MODIF ICI
-        }
-      }
-    }
-
-    switch (etatActuel) {
-
-      case ETAT_INIT:
-        ok = 1;
-        ecran();
-        etatActuel = ETAT_ATTENTE;
-        break;
-
-      case ETAT_ATTENTE:
-        if ((long)(currentMillis - screenHoldUntil) > 0 && TotCn == 0) {  // 🔄 MODIF ICI
-          ok = 1;
-          ecran();
+        if (out.soundToPlay != -1) {
+            jouerSon(out.soundToPlay);
         }
 
-        if (b1_state && !b1_lastState && currentMillis - lastB1Millis > debounceB1) {
-          jouerSon(1);
-          etatActuel = (TotCn == 0) ? ETAT_COMPTEURS : ETAT_ANNULATION;
-          lastB1Millis = currentMillis;
-        }
-
-        if (b3_state && !b3_lastState && currentMillis - lastB3Millis > debounceB3) {
-          jouerSon(5);
-
-          if (TotCn > max_cred) {
-            noTone(BUZZER_PIN);
-            etatSon = 0;
-
-            annulationCreditExces = true;
-            TotCn = 0;
-            ok = 8;
+        if (out.screenId != -1) {
+            ok = out.screenId;
             ecran();
-            jouerSon(6);
-            screenHoldUntil = currentMillis + 4000;  // 🔄 MODIF ICI
-            ecranInitialise = false;
-            etatActuel = ETAT_TIMEOUT_ECRAN;
-          } else if (TotCn > 0) {
-            etatActuel = ETAT_ENVOI_CREDIT;
-          } else {
-            etatActuel = ETAT_PUB;
-          }
-
-          lastB3Millis = currentMillis;
         }
-        break;
 
-      case ETAT_ANNULATION:
-        annulationCreditExces = false;
-        annulationCreditReset = true;
-        ok = 8;
-        TotCn = 0;
-        jouerSon(3);
-        ecran();
-        screenHoldUntil = currentMillis + 4000;  // 🔄 MODIF ICI
-        etatActuel = ETAT_TIMEOUT_ECRAN;
-        break;
+        if (out.sendMessage) {
+            dataSent.cp1 = out.messageData.cp1;
+            dataSent.fs1 = out.messageData.fs1;
+            dataSent.fp1 = out.messageData.fp1;
+            dataSent.cp2 = cmptrjrn;
+            dataSent.cp3 = totcmptr;
+            esp_now_send(broadcastAddress, (uint8_t *)&dataSent, sizeof(dataSent));
 
-      case ETAT_ENVOI_CREDIT:
-        dataSent.cp1 = TotCn;
-        dataSent.fs1 = 1;
-        dataSent.fp1 = false;
-        esp_now_send(broadcastAddress, (uint8_t *)&dataSent, sizeof(dataSent));
-        isSending = true;
-        sendStartTime = currentMillis;
-        etatActuel = ETAT_RESULTAT_ENVOI;
-        break;
-
-      case ETAT_RESULTAT_ENVOI:
-        if ((long)(currentMillis - sendStartTime) >= SEND_TIMEOUT) {  // 🔄 MODIF ICI
-          isSending = false;
-
-          if (SendStts) {
-            tft.fillScreen(ST77XX_BLACK);
-            tft.setTextColor(ST77XX_WHITE);
-            tft.setTextSize(2);
-            tft.setCursor(10, 40);
-            tft.println("Transfert");
-            tft.println(" reussi");
-            jouerSon(2);
-            screenHoldUntil = currentMillis + 1000;  // 🔄 MODIF ICI
-          } else {
-            tft.fillScreen(ST77XX_RED);
-            tft.setTextSize(2);
-            tft.setCursor(10, 40);
-            tft.println("   Jeu");
-            tft.println(" ");
-            tft.println(" OFF line");
-            jouerSon(6);
-            screenHoldUntil = currentMillis + 3000;  // 🔄 MODIF ICI
-            ecranInitialise = false;
-          }
-
-          TotCn = 0;
-          etatActuel = ETAT_TIMEOUT_ECRAN;
+            // Set sending state for LED logic
+            isSending = true;
         }
-        break;
 
-      case ETAT_PUB:
-        ok = 4;
-        ecran();
-        screenHoldUntil = currentMillis + 3000;  // 🔄 MODIF ICI
-        etatActuel = ETAT_TIMEOUT_ECRAN;
-        break;
-
-      case ETAT_COMPTEURS:
-        ok = 6;
-        ecran();
-        screenHoldUntil = currentMillis + 3000;  // 🔄 MODIF ICI
-        etatActuel = ETAT_TIMEOUT_ECRAN;
-        break;
-
-      case ETAT_TIMEOUT_ECRAN:
-        // if ((long)(currentMillis - screenHoldUntil) > 0 && !b2_state) {  // 🔄 MODIF ICI
-
-        if ((long)(currentMillis - screenHoldUntil) > 0 && (!b2_state || (currentMillis - screenHoldUntil) > 5000)) {
-
-          if (TotCn == 0) ok = 1;
-          ecran();
-          for (byte i = 0; i < BUTTON_NUM; i++) buttonArray[i].resetCount();
-          etatActuel = ETAT_ATTENTE;
-          ecranInitialise = false;
+        // Update isSending state based on Logic state
+        if (barLogic->getState() == BarLogic::ETAT_TIMEOUT_ECRAN ||
+            barLogic->getState() == BarLogic::ETAT_ATTENTE) {
+            isSending = false;
         }
-        break;
-    }
 
-    if (etatActuel == ETAT_ATTENTE && TotCn != TotCn_prev) {
-      ok = (TotCn > 0) ? 3 : 1;
-      ecran();
-      screenHoldUntil = currentMillis + ((TotCn > 0) ? 700 : 0);  // 🔄 MODIF ICI
-      TotCn_prev = TotCn;
+        TotCn = barLogic->getTotalCredits();
     }
 
     if (led01On && currentMillis - led01StartTime >= LED01_DURATION) {
       digitalWrite(led01, LOW);
       led01On = false;
     }
-
-    b1_lastState = b1_state;
-    b2_lastState = b2_state;
-    b3_lastState = b3_state;
   }
 }
